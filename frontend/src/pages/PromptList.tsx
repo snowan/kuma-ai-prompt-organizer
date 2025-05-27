@@ -1,14 +1,16 @@
-import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, Spinner, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, Spinner, Text, VStack, Badge, HStack } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { getPrompts, getCategories } from '../services/promptService';
 import type { Prompt, Category } from '../types';
 import { useMemo } from 'react';
 
 const PromptList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
   const { data: prompts, isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
-    queryKey: ['prompts'],
-    queryFn: () => getPrompts(),
+    queryKey: ['prompts', { category_id: categoryId }],
+    queryFn: () => getPrompts({ category_id: categoryId }),
   });
 
   const { data: categories, isLoading: isLoadingCategories } = useQuery({
@@ -41,8 +43,26 @@ const PromptList = () => {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center">
-        <Heading size="lg">All Prompts</Heading>
+      <Flex justify="space-between" align="center" mb={4}>
+        <Box>
+          <Heading size="lg" display="inline" mr={4}>All Prompts</Heading>
+          {categoryId && categoryMap[categoryId] && (
+            <Badge colorScheme="blue" fontSize="md" px={2} py={1} borderRadius="md">
+              Category: {categoryMap[categoryId]}
+              <Button 
+                size="xs" 
+                variant="ghost" 
+                ml={2} 
+                onClick={() => {
+                  searchParams.delete('category_id');
+                  setSearchParams(searchParams);
+                }}
+              >
+                ✕
+              </Button>
+            </Badge>
+          )}
+        </Box>
         <Button as={RouterLink} to="/prompts/new" colorScheme="blue">
           Create New Prompt
         </Button>
@@ -61,9 +81,23 @@ const PromptList = () => {
               <CardHeader pb={0}>
                 <Heading size="md">{prompt.title}</Heading>
                 {prompt.category_id && categoryMap[prompt.category_id] && (
-                  <Text fontSize="sm" color="gray.500" mt={1}>
-                    Category: {categoryMap[prompt.category_id]}
-                  </Text>
+                  <HStack spacing={2} mt={1}>
+                    <Text fontSize="sm" color="gray.500">Category:</Text>
+                    <Text 
+                      as="button"
+                      fontSize="sm" 
+                      color="blue.500"
+                      _hover={{ textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        searchParams.set('category_id', prompt.category_id!.toString());
+                        setSearchParams(searchParams);
+                      }}
+                    >
+                      {categoryMap[prompt.category_id]}
+                    </Text>
+                  </HStack>
                 )}
               </CardHeader>
               <CardBody>

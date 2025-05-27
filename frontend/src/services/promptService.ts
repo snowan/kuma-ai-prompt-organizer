@@ -18,7 +18,16 @@ interface GetPromptsParams {
 
 // Prompts
 export const getPrompts = async (params?: GetPromptsParams): Promise<Prompt[]> => {
-  const response = await api.get<Prompt[]>(`/api/prompts`, { params });
+  // Filter out undefined values from params
+  const filteredParams = params 
+    ? Object.fromEntries(
+        Object.entries(params).filter(([_, value]) => value !== undefined)
+      )
+    : undefined;
+    
+  const response = await api.get<Prompt[]>('/api/prompts', { 
+    params: filteredParams 
+  });
   return response.data;
 };
 
