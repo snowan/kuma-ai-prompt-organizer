@@ -9,10 +9,13 @@ A web application for managing and organizing AI prompts with categories and tag
 - **Tagging**: Add tags to prompts for better organization
 - **Search**: Full-text search across prompts
 - **Duplicate Detection**: Automatically detects similar prompts to prevent duplicates
+- **Like System**: Like your favorite prompts and track them across sessions
+- **Category Filtering**: Easily filter prompts by clicking on category names
+- **Tag Filtering**: Filter prompts by tags with a single click
 - **RESTful API**: Built with FastAPI for the backend
-- **Modern Frontend**: Built with React (coming soon)
-- De-duplication of similar prompts
-- Search and filter functionality
+- **Modern Frontend**: Built with React and TypeScript
+- **De-duplication**: Prevents duplicate prompts
+- **Responsive Design**: Works on desktop and mobile devices
 
 ## Example UI
 
@@ -41,7 +44,9 @@ View all details of a prompt including its content, category, tags, and usage st
 ### Prompt Cards
 - Clean, card-based layout for easy scanning
 - Color-coded categories for visual organization
+- Like/unlike prompts with persistent state
 - Quick actions (copy, edit, delete) on hover
+- Clickable categories and tags for filtering
 
 ### Forms
 - Intuitive form validation
@@ -59,11 +64,13 @@ View all details of a prompt including its content, category, tags, and usage st
 - Pydantic (data validation)
 - TheFuzz (duplicate detection)
 
-### Frontend (coming soon)
-- React
+### Frontend
+- React 18
 - TypeScript
-- Material-UI
+- Chakra UI
 - React Query
+- React Router
+- Axios for API calls
 
 ## Getting Started
 
@@ -111,13 +118,32 @@ View all details of a prompt including its content, category, tags, and usage st
 
 The backend API will be available at `http://localhost:8000`
 
-### Frontend Setup (coming soon)
+### Frontend Setup
 
-```bash
-cd frontend
-npm install
-npm start
-```
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env file if needed
+   ```
+
+4. Start the development server:
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
 
 The frontend will be available at `http://localhost:3000`
 
