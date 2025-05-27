@@ -115,6 +115,26 @@ const PromptList = () => {
     if (!categoryId) return prompts;
     return prompts.filter(prompt => prompt.category_id === categoryId);
   }, [prompts, categoryId]);
+  
+  // Handle category click to filter by category
+  const handleCategoryClick = (e: React.MouseEvent, categoryId: number | undefined) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!categoryId) return;
+    
+    const params = new URLSearchParams(searchParams);
+    params.set('category_id', categoryId.toString());
+    // Clear tag filter when filtering by category
+    params.delete('tag');
+    setSearchParams(params);
+  };
+  
+  // Clear all filters
+  const clearFilters = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setSearchParams({});
+  };
 
   // Get category name by ID
   const getCategoryName = (id: number) => {
@@ -143,8 +163,21 @@ const PromptList = () => {
         <Box>
           <Text fontSize="sm" color="gray.500" mb={1}>
             {categoryId 
-              ? `Category: ${getCategoryName(categoryId)}`
-              : tagName 
+              ? (
+                <>
+                  Category: {getCategoryName(categoryId)}
+                  <Box 
+                    as="button" 
+                    ml={2} 
+                    color="blue.500"
+                    _hover={{ textDecoration: 'underline' }}
+                    onClick={clearFilters}
+                    title="Clear filters"
+                  >
+                    (Clear)
+                  </Box>
+                </>
+              ) : tagName 
                 ? `Tag: ${tagName}`
                 : ''}
           </Text>
@@ -194,14 +227,19 @@ const PromptList = () => {
                     {prompt.category_id && (
                       <Flex align="center" gap={1}>
                         <Text fontSize="sm" color="gray.500">Category:</Text>
-                        <Text 
+                        <Box
+                          as="button"
+                          type="button"
                           fontSize="sm" 
                           fontWeight="medium"
                           color="blue.600"
                           _dark={{ color: 'blue.300' }}
+                          _hover={{ textDecoration: 'underline' }}
+                          onClick={(e: React.MouseEvent) => handleCategoryClick(e, prompt.category_id)}
+                          title={`Filter by ${getCategoryName(prompt.category_id)}`}
                         >
                           {getCategoryName(prompt.category_id)}
-                        </Text>
+                        </Box>
                       </Flex>
                     )}
                   </Flex>
