@@ -14,6 +14,41 @@ A web application for managing and organizing AI prompts with categories and tag
 - De-duplication of similar prompts
 - Search and filter functionality
 
+## Example UI
+
+### Dashboard View
+![Dashboard View](./resources/home-ui.png)
+
+The dashboard provides an overview of all your prompts, organized by categories. Quickly access your most used prompts and see recent activity.
+
+### Create/Edit Prompt
+![Create Prompt](./resources/create-ui.png)
+
+Easily create new prompts or edit existing ones with the intuitive form. Add tags, select categories, and format your content with markdown.
+
+### Prompt Detail View
+![Prompt Detail](./resources/detail-ui.png)
+
+View all details of a prompt including its content, category, tags, and usage statistics. Copy the prompt with a single click or edit it as needed.
+
+## UI Components
+
+### Navigation
+- Responsive sidebar for easy navigation between categories and tags
+- Breadcrumb navigation for deep linking
+- Quick access to search and create new prompts
+
+### Prompt Cards
+- Clean, card-based layout for easy scanning
+- Color-coded categories for visual organization
+- Quick actions (copy, edit, delete) on hover
+
+### Forms
+- Intuitive form validation
+- Markdown preview for prompt content
+- Tag input with autocomplete
+- Category selection dropdown
+
 ## Tech Stack
 
 ### Backend
