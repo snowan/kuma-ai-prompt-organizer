@@ -1,16 +1,18 @@
-import { Box, Button, FormControl, FormLabel, Select, Textarea, VStack } from '@chakra-ui/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Box, Button, FormControl, FormLabel, Select, Textarea, VStack, FormErrorMessage, Input, HStack, Tag, TagLabel, TagCloseButton, Wrap, useToast } from '@chakra-ui/react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import type { SubmitHandler } from 'react-hook-form';
+import type { SubmitHandler, FieldValues } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { createPrompt, updatePrompt, getCategories } from '../services/promptService';
-import type { Prompt, Category, Tag } from '../services/promptService';
+import type { Prompt, Category } from '../types';
+import { useState, useCallback } from 'react';
 
-interface FormData {
+interface FormData extends FieldValues {
   title: string;
   content: string;
   category_id?: number;
-  tags?: number[];
+  tag_names: string[];
+  newTag: string;
 }
 
 interface PromptFormProps {
@@ -21,88 +23,168 @@ interface PromptFormProps {
 const PromptForm = ({ prompt, isEditing = false }: PromptFormProps) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = useToast();
+  const showToast = useCallback((title: string, status: 'success' | 'error' | 'warning' | 'info') => {
+    toast({
+      title,
+      status,
+      duration: 3000,
+      isClosable: true,
+    });
+  }, [toast]);
+  const [tagInput, setTagInput] = useState('');
   
+  // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
-    queryFn: getCategories,
+    queryFn: getCategories as () => Promise<Category[]>,
   });
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { 
+    register, 
+    handleSubmit, 
+    setValue,
+    watch,
+    formState: { errors } 
+  } = useForm<FormData>({
     defaultValues: {
       title: prompt?.title || '',
       content: prompt?.content || '',
       category_id: prompt?.category_id || undefined,
-      tags: prompt?.tags?.map((tag: Tag) => tag.id) || [],
+      tag_names: prompt?.tags?.map(tag => tag.name) || [],
+      newTag: '',
     },
   });
 
-  const mutation = useMutation<Prompt, Error, FormData>({
-    mutationFn: async (data: FormData) => {
-      return isEditing && prompt?.id 
-        ? updatePrompt(prompt.id, data as Omit<Prompt, 'id'>) 
-        : createPrompt(data as Omit<Prompt, 'id'>);
-    },
-    onSuccess: () => {
+  const tagNames = watch('tag_names') || [];
+  const currentCategoryId = watch('category_id');
+
+  const handleAddTag = useCallback(() => {
+    if (tagInput.trim() && !tagNames.includes(tagInput.trim())) {
+      setValue('tag_names', [...tagNames, tagInput.trim()]);
+      setTagInput('');
+    }
+  }, [tagInput, tagNames, setValue]);
+
+  const handleRemoveTag = useCallback((tagToRemove: string) => {
+    setValue('tag_names', tagNames.filter(tag => tag !== tagToRemove));
+  }, [tagNames, setValue]);
+
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    try {
+      const promptData = {
+        title: data.title,
+        content: data.content,
+        category_id: data.category_id || undefined,
+        tag_names: data.tag_names || [],
+      };
+
+      if (isEditing && prompt?.id) {
+        await updatePrompt(prompt.id, promptData);
+        showToast('Prompt updated successfully', 'success');
+      } else {
+        await createPrompt(promptData);
+        showToast('Prompt created successfully', 'success');
+      }
+
       queryClient.invalidateQueries({ queryKey: ['prompts'] });
       navigate('/prompts');
-    },
-  });
-
-  const onSubmit: SubmitHandler<FormData> = (data) => {
-    mutation.mutate(data);
+    } catch (error) {
+      showToast('Failed to save prompt', 'error');
+    }
   };
 
   return (
-    <Box as="form" onSubmit={handleSubmit(onSubmit)}>
-      <VStack spacing={6}>
-        <FormControl isInvalid={!!errors.title} isRequired>
-          <FormLabel>Title</FormLabel>
-          <input
-            {...register('title', { required: 'Title is required' })}
-            className="chakra-input"
-            placeholder="Enter prompt title"
-          />
-          {errors.title && <Box color="red.500" mt={1}>{errors.title.message}</Box>}
-        </FormControl>
+    <Box maxW="container.md" mx="auto" p={4}>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <VStack spacing={6} align="stretch">
+          <FormControl isInvalid={!!errors.title}>
+            <FormLabel>Title</FormLabel>
+            <Input
+              {...register('title', { required: 'Title is required' })}
+              placeholder="Enter prompt title"
+              size="lg"
+            />
+            {errors.title && (
+              <FormErrorMessage>{errors.title.message as string}</FormErrorMessage>
+            )}
+          </FormControl>
 
-        <FormControl isInvalid={!!errors.content} isRequired>
-          <FormLabel>Content</FormLabel>
-          <Textarea
-            {...register('content', { required: 'Content is required' })}
-            placeholder="Enter prompt content"
-            rows={8}
-          />
-          {errors.content && <Box color="red.500" mt={1}>{errors.content.message}</Box>}
-        </FormControl>
+          <FormControl isInvalid={!!errors.content}>
+            <FormLabel>Content</FormLabel>
+            <Textarea
+              {...register('content', { required: 'Content is required' })}
+              placeholder="Enter prompt content"
+              rows={10}
+              fontFamily="mono"
+              whiteSpace="pre-wrap"
+            />
+            {errors.content && (
+              <FormErrorMessage>{errors.content.message as string}</FormErrorMessage>
+            )}
+          </FormControl>
 
-        <FormControl>
-          <FormLabel>Category</FormLabel>
-          <Select
-            {...register('category_id')}
-            placeholder="Select category (optional)"
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
+          <FormControl>
+            <FormLabel>Category (optional)</FormLabel>
+            <Select
+              placeholder="Select a category"
+              {...register('category_id')}
+              value={currentCategoryId}
+              onChange={(e) => setValue('category_id', e.target.value ? Number(e.target.value) : undefined)}
+            >
+              {categories.map((category: Category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl>
-          <FormLabel>Tags (coming soon)</FormLabel>
-          <Select isDisabled placeholder="Tags functionality coming soon" />
-        </FormControl>
+          <FormControl>
+            <FormLabel>Tags (press Enter to add)</FormLabel>
+            <HStack spacing={2} mb={2}>
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Add a tag and press Enter"
+              />
+              <Button onClick={handleAddTag} type="button">
+                Add
+              </Button>
+            </HStack>
+            <Wrap spacing={2}>
+              {tagNames.map((tag: string) => (
+                <Tag key={tag} colorScheme="blue" borderRadius="full">
+                  <TagLabel>{tag}</TagLabel>
+                  <TagCloseButton onClick={() => handleRemoveTag(tag)} />
+                </Tag>
+              ))}
+            </Wrap>
+          </FormControl>
 
-        <Button
-          type="submit"
-          colorScheme="blue"
-          isLoading={mutation.isPending}
-          loadingText={isEditing ? 'Updating...' : 'Creating...'}
-        >
-          {isEditing ? 'Update Prompt' : 'Create Prompt'}
-        </Button>
-      </VStack>
+          <HStack spacing={4} justify="flex-end" pt={4}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              colorScheme="blue"
+            >
+              {isEditing ? 'Update' : 'Create'} Prompt
+            </Button>
+          </HStack>
+        </VStack>
+      </form>
     </Box>
   );
 };

@@ -40,27 +40,39 @@ async def create_prompt(
     """
     Create a new prompt with optional category and tags.
     """
-    # Check if category exists if provided
-    if prompt.category_id is not None:
-        db_category = await crud.get_category(db, category_id=prompt.category_id)
-        if not db_category:
-            raise HTTPException(status_code=400, detail="Category not found")
-    
-    # Create prompt (handles duplicate checking)
-    result = await crud.create_prompt(db=db, prompt=prompt)
-    
-    # Check if result is a duplicate warning
-    if isinstance(result, dict) and "similar_prompt_id" in result:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": "A similar prompt already exists",
-                "similar_prompt_id": result["similar_prompt_id"],
-                "similarity": result["similarity"]
-            }
-        )
-    
-    return result
+    try:
+        # Check if category exists if provided
+        if prompt.category_id is not None:
+            db_category = await crud.get_category(db, category_id=prompt.category_id)
+            if not db_category:
+                raise HTTPException(status_code=400, detail="Category not found")
+        
+        # Create prompt (handles duplicate checking)
+        # TODO: Get user_id from authentication context
+        result = await crud.create_prompt(db=db, prompt=prompt, user_id=1)
+        
+        # Handle case where a similar prompt was found
+        if isinstance(result, dict) and 'similar_prompt_id' in result:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "detail": "A similar prompt already exists",
+                    "similar_prompt_id": result["similar_prompt_id"],
+                    "similarity": result["similarity"]
+                }
+            )
+            
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to create prompt")
+            
+        return result
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{prompt_id}", response_model=schemas.PromptResponse)
 async def read_prompt(prompt_id: int, db: AsyncSession = Depends(get_db)):

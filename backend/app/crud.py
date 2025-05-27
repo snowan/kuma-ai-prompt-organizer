@@ -1,7 +1,9 @@
 from typing import List, Optional, Dict, Any, Union
+from fastapi import HTTPException
 
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 from thefuzz import fuzz
 
 from . import models, schemas
@@ -66,32 +68,76 @@ async def get_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
     
     return prompt
 
-async def create_prompt(db: Session, prompt: schemas.PromptCreate, user_id: int = 1) -> Union[models.Prompt, Dict[str, Any]]:
+async def create_prompt(db: AsyncSession, prompt: schemas.PromptCreate, user_id: int = 1) -> Union[models.Prompt, Dict[str, Any]]:
     """Create a new prompt with tags"""
-    # Check for similar prompts
-    existing_prompts = await get_prompts(db)
-    for existing in existing_prompts:
-        similarity = calculate_similarity(prompt.content, existing.content)
-        if similarity > 90:  # 90% similarity threshold
-            return {"similar_prompt_id": existing.id, "similarity": similarity}
-    
-    # Create prompt
-    db_prompt = models.Prompt(
-        title=prompt.title,
-        content=prompt.content,
-        category_id=prompt.category_id,
-    )
-    
-    # Add tags
-    if prompt.tag_names:
-        for tag_name in prompt.tag_names:
-            tag = await get_or_create_tag(db, tag_name)
-            db_prompt.tags.append(tag)
-    
-    db.add(db_prompt)
-    await db.commit()
-    await db.refresh(db_prompt)
-    return db_prompt
+    try:
+        # Check for similar prompts
+        existing_prompts = await get_prompts(db)
+        for existing in existing_prompts:
+            similarity = calculate_similarity(prompt.content, existing.content)
+            if similarity > 90:  # 90% similarity threshold
+                return {"similar_prompt_id": existing.id, "similarity": similarity}
+        
+        # Create prompt
+        db_prompt = models.Prompt(
+            title=prompt.title,
+            content=prompt.content,
+            category_id=prompt.category_id,
+        )
+        
+        # Add tags if any
+        if prompt.tag_names:
+            for tag_name in prompt.tag_names:
+                tag = await get_or_create_tag(db, tag_name)
+                if tag not in db_prompt.tags:
+                    db_prompt.tags.append(tag)
+        
+        db.add(db_prompt)
+        await db.commit()
+        
+        # Refresh the prompt to get the generated ID
+        await db.refresh(db_prompt)
+        
+        # Create a new query to get the prompt with relationships loaded
+        stmt = (
+            select(models.Prompt)
+            .options(
+                selectinload(models.Prompt.category),
+                selectinload(models.Prompt.tags)
+            )
+            .where(models.Prompt.id == db_prompt.id)
+        )
+        
+        result = await db.execute(stmt)
+        db_prompt = result.scalar_one()
+        
+        # Create response with proper serialization
+        response_data = {
+            "id": db_prompt.id,
+            "title": db_prompt.title,
+            "content": db_prompt.content,
+            "created_at": db_prompt.created_at,
+            "updated_at": db_prompt.updated_at,
+            "category_id": db_prompt.category_id,
+            "category": {
+                "id": db_prompt.category.id,
+                "name": db_prompt.category.name,
+                "description": db_prompt.category.description,
+                "created_at": db_prompt.category.created_at
+            } if db_prompt.category else None,
+            "tags": [{
+                "id": tag.id,
+                "name": tag.name,
+                "created_at": tag.created_at
+            } for tag in db_prompt.tags],
+            "tag_names": [tag.name for tag in db_prompt.tags]
+        }
+        
+        return response_data
+        
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 async def update_prompt(
     db: Session, 
@@ -140,19 +186,28 @@ async def delete_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
     await db.commit()
     return db_prompt
 
-async def get_or_create_tag(db: Session, name: str) -> models.Tag:
+async def get_or_create_tag(db: AsyncSession, name: str) -> models.Tag:
     """Get or create a tag by name"""
-    stmt = select(models.Tag).where(models.Tag.name == name)
-    result = await db.execute(stmt)
-    tag = result.scalars().first()
-    
-    if not tag:
-        tag = models.Tag(name=name)
-        db.add(tag)
-        await db.commit()
-        await db.refresh(tag)
-    
-    return tag
+    try:
+        # Check if tag exists
+        stmt = select(models.Tag).where(models.Tag.name == name)
+        result = await db.execute(stmt)
+        tag = result.scalar_one_or_none()
+        
+        if tag is None:
+            # Create new tag
+            tag = models.Tag(name=name)
+            db.add(tag)
+            await db.commit()
+            await db.refresh(tag)
+        
+        return tag
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get or create tag: {str(e)}"
+        )
 
 async def get_categories(db: Session, skip: int = 0, limit: int = 100) -> List[models.Category]:
     """Get all categories"""

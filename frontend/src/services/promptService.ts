@@ -1,71 +1,73 @@
-import apiClient from './api';
+import api from './api';
+import type { Category, Prompt, Tag } from '../types';
 
-export interface Prompt {
-  id?: number;
+export interface PromptCreate {
   title: string;
   content: string;
-  category_id?: number | null;
-  created_at?: string;
-  updated_at?: string | null;
-  tags?: Tag[];
+  category_id?: number;
+  tag_names?: string[];
 }
 
-export interface Category {
-  id: number;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
+export interface PromptUpdate extends Partial<PromptCreate> {}
 
-export interface Tag {
-  id: number;
-  name: string;
-  created_at: string;
+interface GetPromptsParams {
+  search?: string;
+  category_id?: number;
+  tag?: string;
 }
 
 // Prompts
-export const getPrompts = async (): Promise<Prompt[]> => {
-  const response = await apiClient.get<Prompt[]>('/prompts');
+export const getPrompts = async (params?: GetPromptsParams): Promise<Prompt[]> => {
+  const response = await api.get<Prompt[]>('/api/prompts/', { params });
   return response.data;
 };
 
 export const getPrompt = async (id: number): Promise<Prompt> => {
-  const response = await apiClient.get<Prompt>(`/prompts/${id}`);
+  const response = await api.get<Prompt>(`/api/prompts/${id}/`);
   return response.data;
 };
 
-export const createPrompt = async (prompt: Omit<Prompt, 'id'>): Promise<Prompt> => {
-  const response = await apiClient.post<Prompt>('/prompts', prompt);
+export const createPrompt = async (prompt: PromptCreate): Promise<Prompt> => {
+  const response = await api.post<Prompt>('/api/prompts/', prompt);
   return response.data;
 };
 
-export const updatePrompt = async (id: number, prompt: Partial<Prompt>): Promise<Prompt> => {
-  const response = await apiClient.put<Prompt>(`/prompts/${id}`, prompt);
+export const updatePrompt = async (id: number, prompt: PromptUpdate): Promise<Prompt> => {
+  const response = await api.put<Prompt>(`/api/prompts/${id}/`, prompt);
   return response.data;
 };
 
 export const deletePrompt = async (id: number): Promise<void> => {
-  await apiClient.delete(`/prompts/${id}`);
+  await api.delete(`/api/prompts/${id}/`);
 };
 
 // Categories
 export const getCategories = async (): Promise<Category[]> => {
-  const response = await apiClient.get<Category[]>('/categories');
+  const response = await api.get<Category[]>('/api/categories/');
   return response.data;
 };
 
 export const createCategory = async (category: Omit<Category, 'id' | 'created_at'>): Promise<Category> => {
-  const response = await apiClient.post<Category>('/categories', category);
+  const response = await api.post<Category>('/api/categories/', category);
   return response.data;
+};
+
+export const updateCategory = async (id: number, category: Partial<Category>): Promise<Category> => {
+  const response = await api.put<Category>(`/api/categories/${id}/`, category);
+  return response.data;
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  await api.delete(`/api/categories/${id}/`);
 };
 
 // Tags
 export const getTags = async (): Promise<Tag[]> => {
-  const response = await apiClient.get<Tag[]>('/tags');
+  const response = await api.get<Tag[]>('/api/tags/');
   return response.data;
 };
 
 export const createTag = async (tag: Omit<Tag, 'id' | 'created_at'>): Promise<Tag> => {
-  const response = await apiClient.post<Tag>('/tags', tag);
+  const response = await api.post<Tag>('/api/tags/', tag);
   return response.data;
 };

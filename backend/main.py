@@ -33,18 +33,36 @@ def create_application() -> FastAPI:
     )
 
     # CORS middleware configuration
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002"
+    ]
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:58310"
-        ],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["*"]
+        expose_headers=["*"],
+        max_age=600,  # Cache preflight requests for 10 minutes
     )
+    
+    # Add middleware to set CORS headers
+    @app.middleware("http")
+    async def add_cors_headers(request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get('origin')
+        if origin in origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
     # Include API router
     app.include_router(api_router, prefix="/api")
