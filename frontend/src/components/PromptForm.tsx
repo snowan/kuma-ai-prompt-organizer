@@ -1,4 +1,25 @@
-import { Box, Button, FormControl, FormLabel, Select, Textarea, VStack, FormErrorMessage, Input, HStack, Tag, TagLabel, TagCloseButton, Wrap, useToast } from '@chakra-ui/react';
+import { 
+  Box, 
+  Button, 
+  FormControl, 
+  FormLabel, 
+  Select, 
+  Textarea, 
+  VStack, 
+  FormErrorMessage, 
+  Input, 
+  HStack, 
+  Tag, 
+  TagLabel, 
+  TagCloseButton, 
+  Wrap, 
+  useToast, 
+  IconButton, 
+  Flex,
+  Text 
+} from '@chakra-ui/react';
+import { StarIcon } from '@chakra-ui/icons';
+import { AIPromptAssistant } from './AIPromptAssistant';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import type { SubmitHandler, FieldValues } from 'react-hook-form';
@@ -47,7 +68,13 @@ const PromptForm = ({ isEditing = false }: PromptFormProps) => {
     });
   }, [toast]);
   const [tagInput, setTagInput] = useState('');
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   
+  const handleAISuggestion = (suggestion: string) => {
+    setValue('content', suggestion);
+    setIsAIAssistantOpen(false);
+  };
+
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
@@ -139,16 +166,37 @@ const PromptForm = ({ isEditing = false }: PromptFormProps) => {
           </FormControl>
 
           <FormControl isInvalid={!!errors.content}>
-            <FormLabel>Content</FormLabel>
+            <FormLabel>Prompt Content</FormLabel>
+            <Flex gap={2} mb={2}>
+              <IconButton
+                aria-label="AI Assistant"
+                icon={<StarIcon />}
+                onClick={() => setIsAIAssistantOpen(true)}
+                variant="outline"
+                colorScheme="purple"
+                size="sm"
+              />
+              <Text fontSize="sm" color="gray.500" ml={2} alignSelf="center">
+                Get AI suggestions to improve your prompt
+              </Text>
+            </Flex>
             <Textarea
               {...register('content', { required: 'Content is required' })}
-              placeholder="Enter prompt content"
-              rows={10}
-              fontFamily="mono"
-              whiteSpace="pre-wrap"
+              placeholder="Enter your prompt content here..."
+              size="md"
+              minH="200px"
+              isInvalid={!!errors.content}
             />
-            {errors.content && (
-              <FormErrorMessage>{errors.content.message as string}</FormErrorMessage>
+            <FormErrorMessage>
+              {errors.content && String(errors.content.message)}
+            </FormErrorMessage>
+            {isAIAssistantOpen && (
+              <AIPromptAssistant
+                isOpen={isAIAssistantOpen}
+                onClose={() => setIsAIAssistantOpen(false)}
+                initialPrompt={watch('content')}
+                onApplySuggestion={handleAISuggestion}
+              />
             )}
           </FormControl>
 
