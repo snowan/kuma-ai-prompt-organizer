@@ -1,15 +1,29 @@
 import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink } from 'react-router-dom';
-import { getPrompts } from '../services/promptService';
+import { getPrompts, getCategories } from '../services/promptService';
+import type { Prompt, Category } from '../types';
+import { useMemo } from 'react';
 
 const PromptList = () => {
-  const { data: prompts, isLoading, error } = useQuery({
+  const { data: prompts, isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
     queryKey: ['prompts'],
-    queryFn: getPrompts,
+    queryFn: () => getPrompts(),
   });
 
-  if (isLoading) {
+  const { data: categories, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => getCategories(),
+  });
+
+  const categoryMap = useMemo(() => {
+    return categories?.reduce((acc: Record<number, string>, category: Category) => {
+      acc[category.id] = category.name;
+      return acc;
+    }, {}) || {};
+  }, [categories]);
+
+  if (isLoadingPrompts || isLoadingCategories) {
     return (
       <Flex justify="center" mt={8}>
         <Spinner size="xl" />
@@ -17,10 +31,10 @@ const PromptList = () => {
     );
   }
 
-  if (error) {
+  if (promptsError) {
     return (
       <Box color="red.500" textAlign="center" mt={8}>
-        Error loading prompts: {error.message}
+        Error loading prompts: {promptsError.message}
       </Box>
     );
   }
@@ -34,7 +48,7 @@ const PromptList = () => {
         </Button>
       </Flex>
 
-      {prompts?.length === 0 ? (
+      {!prompts || prompts.length === 0 ? (
         <Box textAlign="center" py={10}>
           <Text fontSize="lg" color="gray.500">
             No prompts found. Create your first prompt to get started!
@@ -42,13 +56,13 @@ const PromptList = () => {
         </Box>
       ) : (
         <VStack spacing={4} align="stretch">
-          {prompts?.map((prompt) => (
+          {prompts.map((prompt: Prompt) => (
             <Card key={prompt.id} as={RouterLink} to={`/prompts/${prompt.id}`} _hover={{ transform: 'translateY(-2px)', shadow: 'md' }} transition="all 0.2s">
               <CardHeader pb={0}>
                 <Heading size="md">{prompt.title}</Heading>
-                {prompt.category_id && (
+                {prompt.category_id && categoryMap[prompt.category_id] && (
                   <Text fontSize="sm" color="gray.500" mt={1}>
-                    Category: {prompt.category_id}
+                    Category: {categoryMap[prompt.category_id]}
                   </Text>
                 )}
               </CardHeader>
