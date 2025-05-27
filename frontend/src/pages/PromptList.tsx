@@ -1,34 +1,132 @@
-import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, Spinner, Text, VStack, Badge, HStack } from '@chakra-ui/react';
-import { useQuery } from '@tanstack/react-query';
-import { Link as RouterLink, useSearchParams } from 'react-router-dom';
-import { getPrompts, getCategories } from '../services/promptService';
+import { Box, Card, Flex, Heading, Spinner, Text, VStack, HStack, useToast, Button } from '@chakra-ui/react';
+import { AddIcon } from '@chakra-ui/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link as RouterLink, useSearchParams, useNavigate } from 'react-router-dom';
+import { getPrompts, getCategories, likePrompt } from '../services/promptService';
 import type { Prompt, Category } from '../types';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 const PromptList = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const [likedPrompts, setLikedPrompts] = useState<Set<number>>(new Set());
   const categoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
   const tagName = searchParams.get('tag') || undefined;
-  const { data: prompts, isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const navigate = useNavigate();
+  
+  // Fetch prompts
+  const { data: prompts = [], isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
     queryKey: ['prompts', { category_id: categoryId, tag: tagName }],
     queryFn: () => getPrompts({ category_id: categoryId, tag: tagName }),
   });
 
-  const { data: categories, isLoading: isLoadingCategories } = useQuery({
+  // Fetch categories
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ['categories'],
-    queryFn: () => getCategories(),
+    queryFn: getCategories,
   });
 
-  const categoryMap = useMemo(() => {
-    return categories?.reduce((acc: Record<number, string>, category: Category) => {
-      acc[category.id] = category.name;
-      return acc;
-    }, {}) || {};
-  }, [categories]);
+  // Like mutation
+  const likeMutation = useMutation({
+    mutationFn: likePrompt,
+    onMutate: async (promptId: number) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['prompts', { category_id: categoryId, tag: tagName }] });
+
+      // Snapshot the previous value
+      const previousPrompts = queryClient.getQueryData<Prompt[]>(['prompts', { category_id: categoryId, tag: tagName }]) || [];
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Prompt[]>(['prompts', { category_id: categoryId, tag: tagName }], (oldData = []) =>
+        oldData.map(prompt => 
+          prompt.id === promptId 
+            ? { 
+                ...prompt, 
+                likes: (prompt.likes || 0) + 1,
+                is_liked: true 
+              } 
+            : prompt
+        )
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousPrompts };
+    },
+    onError: (_err, _promptId, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousPrompts) {
+        queryClient.setQueryData(['prompts', { category_id: categoryId, tag: tagName }], context.previousPrompts);
+      }
+      toast({
+        title: 'Error',
+        description: 'Failed to like the prompt',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: ['prompts', { category_id: categoryId, tag: tagName }] });
+    },
+  });
+
+  // Handle like button click
+  const handleLikeClick = (e: React.MouseEvent<HTMLDivElement>, prompt: Prompt) => {
+    // Prevent default and stop propagation to avoid navigation
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Toggle like state
+    const newLikedPrompts = new Set(likedPrompts);
+    const isLiked = newLikedPrompts.has(prompt.id);
+    
+    if (isLiked) {
+      newLikedPrompts.delete(prompt.id);
+    } else {
+      newLikedPrompts.add(prompt.id);
+    }
+    setLikedPrompts(newLikedPrompts);
+    
+    // Call the mutation
+    likeMutation.mutate(prompt.id, {
+      onSuccess: (updatedPrompt) => {
+        // Update the UI with the server response
+        queryClient.setQueryData<Prompt[]>(
+          ['prompts', { category_id: categoryId, tag: tagName }],
+          (oldData = []) => oldData.map(p => 
+            p.id === updatedPrompt.id ? updatedPrompt : p
+          )
+        );
+      },
+      onError: () => {
+        // Revert on error
+        const revertedLikedPrompts = new Set(likedPrompts);
+        if (likedPrompts.has(prompt.id)) {
+          revertedLikedPrompts.delete(prompt.id);
+        } else {
+          revertedLikedPrompts.add(prompt.id);
+        }
+        setLikedPrompts(revertedLikedPrompts);
+      }
+    });
+  };
+
+  // Filter prompts by category if categoryId is provided
+  const filteredPrompts = useMemo(() => {
+    if (!categoryId) return prompts;
+    return prompts.filter(prompt => prompt.category_id === categoryId);
+  }, [prompts, categoryId]);
+
+  // Get category name by ID
+  const getCategoryName = (id: number) => {
+    return categories.find(cat => cat.id === id)?.name || 'Uncategorized';
+  };
 
   if (isLoadingPrompts || isLoadingCategories) {
     return (
-      <Flex justify="center" mt={8}>
+      <Flex justify="center" align="center" minH="200px">
         <Spinner size="xl" />
       </Flex>
     );
@@ -36,142 +134,148 @@ const PromptList = () => {
 
   if (promptsError) {
     return (
-      <Box color="red.500" textAlign="center" mt={8}>
-        Error loading prompts: {promptsError.message}
+      <Box p={4} color="red.500">
+        Error loading prompts: {promptsError instanceof Error ? promptsError.message : 'Unknown error'}
       </Box>
     );
   }
 
   return (
     <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={6}>
         <Box>
-          <Heading size="lg" display="inline" mr={4}>All Prompts</Heading>
-          {categoryId && categoryMap[categoryId] && (
-            <Badge colorScheme="blue" fontSize="md" px={2} py={1} borderRadius="md" mr={2}>
-              Category: {categoryMap[categoryId]}
-              <Button 
-                size="xs" 
-                variant="ghost" 
-                ml={2} 
-                onClick={() => {
-                  searchParams.delete('category_id');
-                  setSearchParams(searchParams);
-                }}
-              >
-                ✕
-              </Button>
-            </Badge>
-          )}
-          {tagName && (
-            <Badge colorScheme="teal" fontSize="md" px={2} py={1} borderRadius="md" display="inline-flex" alignItems="center">
-              Tag: {tagName}
-              <Button 
-                size="xs" 
-                variant="ghost" 
-                ml={2} 
-                onClick={() => {
-                  searchParams.delete('tag');
-                  setSearchParams(searchParams);
-                }}
-              >
-                ✕
-              </Button>
-            </Badge>
-          )}
+          <Text fontSize="sm" color="gray.500" mb={1}>
+            {categoryId 
+              ? `Category: ${getCategoryName(categoryId)}`
+              : tagName 
+                ? `Tag: ${tagName}`
+                : ''}
+          </Text>
+          <Heading as="h1" size="lg" fontWeight="semibold">
+            {categoryId 
+              ? getCategoryName(categoryId)
+              : tagName 
+                ? tagName
+                : 'All Prompts'}
+          </Heading>
         </Box>
-        <Button as={RouterLink} to="/prompts/new" colorScheme="blue">
+        <Button 
+          as={RouterLink}
+          to="/prompts/new"
+          colorScheme="blue"
+          size="sm"
+          leftIcon={<AddIcon />}
+        >
           Create New Prompt
         </Button>
       </Flex>
 
-      {!prompts || prompts.length === 0 ? (
-        <Box textAlign="center" py={10}>
-          <Text fontSize="lg" color="gray.500">
-            No prompts found. Create your first prompt to get started!
+      {filteredPrompts.length === 0 ? (
+        <Box p={6} textAlign="center" bg="gray.50" borderRadius="md">
+          <Text fontSize="lg" color="gray.600">
+            No prompts found{categoryId ? ' in this category' : tagName ? ' with this tag' : ''}. Create one to get started!
           </Text>
         </Box>
       ) : (
         <VStack spacing={4} align="stretch">
-          {prompts.map((prompt: Prompt) => (
-            <Card key={prompt.id} as={RouterLink} to={`/prompts/${prompt.id}`} _hover={{ transform: 'translateY(-2px)', shadow: 'md' }} transition="all 0.2s">
-              <CardHeader pb={0}>
-                <Heading size="md">{prompt.title}</Heading>
-                {prompt.category_id && categoryMap[prompt.category_id] && (
-                  <HStack spacing={2} mt={1}>
-                    <Text fontSize="sm" color="gray.500">Category:</Text>
-                    <Text 
+          {filteredPrompts.map((prompt) => (
+            <Card 
+              key={prompt.id} 
+              as={RouterLink} 
+              to={`/prompts/${prompt.id}`} 
+              _hover={{ transform: 'translateY(-2px)', shadow: 'md' }} 
+              transition="all 0.2s" 
+              p={4}
+              variant="outline"
+            >
+              <VStack align="stretch" spacing={3}>
+                <Box>
+                  <Flex justify="space-between" align="center" mb={2}>
+                    <Text fontSize="sm" color="gray.500">
+                      {new Date(prompt.created_at).toLocaleDateString()}
+                    </Text>
+                    {prompt.category_id && (
+                      <Flex align="center" gap={1}>
+                        <Text fontSize="sm" color="gray.500">Category:</Text>
+                        <Text 
+                          fontSize="sm" 
+                          fontWeight="medium"
+                          color="blue.600"
+                          _dark={{ color: 'blue.300' }}
+                        >
+                          {getCategoryName(prompt.category_id)}
+                        </Text>
+                      </Flex>
+                    )}
+                  </Flex>
+                  <Heading size="md" mb={2} fontWeight="semibold">{prompt.title}</Heading>
+                  <Text noOfLines={2} color="gray.700" mb={3}>
+                    {prompt.content}
+                  </Text>
+                </Box>
+                
+                <HStack spacing={2} wrap="wrap">
+                  {prompt.tags?.map((tag) => (
+                    <Box
+                      key={tag.id}
                       as="button"
-                      fontSize="sm" 
-                      color="blue.500"
-                      _hover={{ textDecoration: 'underline' }}
-                      onClick={(e) => {
+                      px={3}
+                      py={1}
+                      bg="teal.100"
+                      borderRadius="full"
+                      fontSize="xs"
+                      color="teal.800"
+                      _hover={{ bg: 'teal.200' }}
+                      transition="background-color 0.2s"
+                      onClick={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        searchParams.set('category_id', prompt.category_id!.toString());
-                        setSearchParams(searchParams);
+                        // Navigate to prompt list with tag filter
+                        navigate(`/prompts?tag=${encodeURIComponent(tag.name)}`);
                       }}
                     >
-                      {categoryMap[prompt.category_id]}
-                    </Text>
-                  </HStack>
-                )}
-              </CardHeader>
-              <CardBody>
-                <Text noOfLines={2} color="gray.600" mb={3}>
-                  {prompt.content}
-                </Text>
-                <Flex align="center" mt={2}>
-                  <HStack spacing={1}>
+                      {tag.name}
+                    </Box>
+                  ))}
+                </HStack>
+                
+                <HStack spacing={4} mt={2}>
+                  <HStack spacing={1} align="center">
                     <Box
                       as="button"
-                      fontSize="lg"
-                      lineHeight={1}
+                      display="flex"
+                      alignItems="center"
                       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                        e.preventDefault();
                         e.stopPropagation();
-                        // TODO: Implement like functionality
+                        e.preventDefault();
+                        handleLikeClick(e, prompt);
                       }}
                       _hover={{
-                        transform: 'scale(1.2)'
+                        color: 'red.500',
+                        '& > *': {
+                          transform: 'scale(1.1)'
+                        }
                       }}
-                      transition="transform 0.2s"
+                      opacity={likeMutation.isPending ? 0.7 : 1}
+                      cursor={likeMutation.isPending ? 'not-allowed' : 'pointer'}
+                      transition="all 0.2s"
+                      title="Like this prompt"
+                      aria-label={`Like this prompt (${prompt.likes || 0} likes)`}
                     >
-                      {prompt.likes > 0 ? '❤️' : '🤍'}
-                    </Box>
-                    <Text fontSize="sm" color="gray.600">
-                      {prompt.likes || 0}
-                    </Text>
-                  </HStack>
-                </Flex>
-                {prompt.tags && prompt.tags.length > 0 && (
-                  <Flex mt={3} gap={2} flexWrap="wrap">
-                    {prompt.tags.map((tag) => (
-                      <Box 
-                        key={tag.id} 
-                        as="button"
-                        px={2} 
-                        py={1} 
-                        bg="teal.100" 
-                        borderRadius="full" 
-                        fontSize="xs"
-                        _hover={{ bg: 'teal.200' }}
-                        transition="background-color 0.2s"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          searchParams.set('tag', tag.name);
-                          // Remove category filter when filtering by tag
-                          searchParams.delete('category_id');
-                          setSearchParams(searchParams);
-                        }}
-                      >
-                        {tag.name}
+                      <Box as="span" mr={1} color={likedPrompts.has(prompt.id) ? 'red.500' : 'gray.400'}>
+                        {likedPrompts.has(prompt.id) ? '❤️' : '🤍'}
                       </Box>
-                    ))}
-                  </Flex>
-                )}
-              </CardBody>
+                      <Text 
+                        color={likedPrompts.has(prompt.id) ? 'red.500' : 'gray.600'}
+                        fontSize="sm"
+                        fontWeight="medium"
+                      >
+                        {likedPrompts.has(prompt.id) ? (prompt.likes || 0) + 1 : prompt.likes || 0}
+                      </Text>
+                    </Box>
+                  </HStack>
+                </HStack>
+              </VStack>
             </Card>
           ))}
         </VStack>

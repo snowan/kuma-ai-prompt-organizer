@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+from sqlalchemy import update, select
+from app.models import Prompt
 
 from app import crud, schemas
 from app.database import get_db
@@ -121,11 +123,44 @@ async def update_prompt(
     return result
 
 @router.delete("/{prompt_id}", response_model=schemas.PromptResponse)
-async def delete_prompt(prompt_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_prompt(
+    prompt_id: int, db: AsyncSession = Depends(get_db)
+):
     """
     Delete a prompt.
     """
-    db_prompt = await crud.delete_prompt(db, prompt_id=prompt_id)
-    if db_prompt is None:
+    prompt = await crud.get_prompt(db, prompt_id=prompt_id)
+    if prompt is None:
         raise HTTPException(status_code=404, detail="Prompt not found")
-    return db_prompt
+    return await crud.delete_prompt(db=db, prompt_id=prompt_id)
+
+@router.post("/{prompt_id}/like", response_model=schemas.PromptResponse)
+async def like_prompt(
+    prompt_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Increment the like count for a prompt.
+    """
+    # Check if prompt exists
+    result = await db.execute(select(Prompt).filter(Prompt.id == prompt_id))
+    prompt = result.scalars().first()
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Increment the like count
+    stmt = (
+        update(Prompt)
+        .where(Prompt.id == prompt_id)
+        .values(likes=Prompt.likes + 1)
+        .returning(Prompt)
+    )
+    
+    result = await db.execute(stmt)
+    updated_prompt = result.scalars().first()
+    await db.commit()
+    
+    # Refresh to get updated relationships
+    await db.refresh(updated_prompt, ['category', 'tags'])
+    
+    return updated_prompt

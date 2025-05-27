@@ -50,6 +50,18 @@ export const deletePrompt = async (id: number): Promise<void> => {
   await api.delete(`/prompts/${id}`);
 };
 
+export const likePrompt = async (id: number): Promise<Prompt> => {
+  try {
+    console.log(`Sending like request for prompt ${id} to /prompts/${id}/like`);
+    const response = await api.post<Prompt>(`/prompts/${id}/like`);
+    console.log('Like response:', response);
+    return response.data;
+  } catch (error) {
+    console.error('Error in likePrompt:', error);
+    throw error;
+  }
+};
+
 // Categories
 export const getCategories = async (): Promise<Category[]> => {
   const response = await api.get<Category[]>('/categories');
