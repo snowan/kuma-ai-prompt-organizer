@@ -43,7 +43,7 @@ app.include_router(api_router, prefix="/api")
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the AI Prompt Manager API"}
+    return {"message": "Welcome to the Kuma AI Prompt Manager API"}
 
 @app.get("/health")
 async def health_check():

@@ -23,7 +23,7 @@ const Navbar = () => {
                 bgClip="text"
                 fontSize="xl"
               >
-                AI Prompt Manager
+                Kuma AI Prompt Manager
               </Heading>
             </RouterLink>
           </HStack>

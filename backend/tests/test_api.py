@@ -36,7 +36,7 @@ client = TestClient(app)
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to the AI Prompt Manager API"}
+    assert response.json() == {"message": "Welcome to the Kuma AI Prompt Manager API"}
 
 def test_create_and_read_category():
     # Create a category

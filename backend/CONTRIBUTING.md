@@ -1,4 +1,4 @@
-# Contributing to AI Prompt Manager
+# Contributing to Kuma AI Prompt Manager
 
 First off, thanks for taking the time to contribute! :tada: :+1:
 

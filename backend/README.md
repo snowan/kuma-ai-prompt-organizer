@@ -1,6 +1,6 @@
-# AI Prompt Manager - Backend
+# Kuma AI Prompt Manager - Backend
 
-This is the backend service for the AI Prompt Manager application, built with FastAPI and SQLAlchemy.
+This is the backend service for the Kuma AI Prompt Manager application, built with FastAPI and SQLAlchemy.
 
 ## Features
 
