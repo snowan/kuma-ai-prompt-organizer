@@ -12,8 +12,8 @@ def calculate_similarity(text1: str, text2: str) -> float:
     """Calculate similarity between two texts (0-100)"""
     return fuzz.token_sort_ratio(text1.lower(), text2.lower())
 
-async def get_prompts(db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[models.Prompt]:
-    """Get all prompts with optional search"""
+async def get_prompts(db: AsyncSession, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[models.Prompt]:
+    """Get all prompts with optional search, including category and tags"""
     stmt = (
         select(models.Prompt)
         .options(
@@ -39,10 +39,17 @@ async def get_prompts(db: Session, skip: int = 0, limit: int = 100, search: Opti
     
     # Ensure all relationships are loaded
     for prompt in prompts:
-        if prompt.category:
-            await db.refresh(prompt, ['category'])
-        if prompt.tags:
-            await db.refresh(prompt, ['tags'])
+        # Explicitly load relationships
+        if prompt.category_id:
+            prompt.category = await db.get(models.Category, prompt.category_id)
+        if prompt.tags is None:
+            prompt.tags = []
+        else:
+            # Use a subquery to load tags in a single query
+            tag_ids = [tag.id for tag in prompt.tags]
+            stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
+            result = await db.execute(stmt)
+            prompt.tags = result.scalars().all()
     
     return prompts
 
@@ -61,10 +68,16 @@ async def get_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
     
     if prompt:
         # Ensure all relationships are loaded
-        if prompt.category:
-            await db.refresh(prompt, ['category'])
-        if prompt.tags:
-            await db.refresh(prompt, ['tags'])
+        if prompt.category_id:
+            prompt.category = await db.get(models.Category, prompt.category_id)
+        if prompt.tags is None:
+            prompt.tags = []
+        else:
+            # Use a subquery to load tags in a single query
+            tag_ids = [tag.id for tag in prompt.tags]
+            stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
+            result = await db.execute(stmt)
+            prompt.tags = result.scalars().all()
     
     return prompt
 
