@@ -54,6 +54,11 @@ class CategoryResponse(CategoryBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class LikeResponse(BaseModel):
+    """Response schema for like information"""
+    count: int
+    is_liked: bool = False
+
 class PromptResponse(BaseModel):
     id: int
     title: str
@@ -64,6 +69,8 @@ class PromptResponse(BaseModel):
     category: Optional[CategoryResponse] = None
     tags: List[TagResponse] = Field(default_factory=list)
     tag_names: List[str] = Field(default_factory=list)
+    like_count: int = 0
+    is_liked: bool = False  # Whether the current user has liked this prompt
 
     model_config = ConfigDict(from_attributes=True)
 

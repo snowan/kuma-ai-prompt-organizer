@@ -6,14 +6,32 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from thefuzz import fuzz
 
+from datetime import datetime
+from typing import List, Optional, Dict, Any, Union, Set
+from fastapi import HTTPException, status
+from sqlalchemy import select, or_, and_
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from thefuzz import fuzz
+
 from . import models, schemas
 
 def calculate_similarity(text1: str, text2: str) -> float:
     """Calculate similarity between two texts (0-100)"""
     return fuzz.token_sort_ratio(text1.lower(), text2.lower())
 
-async def get_prompts(db: AsyncSession, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[models.Prompt]:
-    """Get all prompts with optional search, including category and tags"""
+async def get_prompts(
+    db: AsyncSession, 
+    skip: int = 0, 
+    limit: int = 100, 
+    search: Optional[str] = None,
+    user_id: Optional[str] = None
+) -> List[models.Prompt]:
+    """
+    Get all prompts with optional search, including category and tags.
+    If user_id is provided, will include like status for that user.
+    """
+    # Base query for prompts
     stmt = (
         select(models.Prompt)
         .options(
@@ -25,6 +43,7 @@ async def get_prompts(db: AsyncSession, skip: int = 0, limit: int = 100, search:
         .order_by(models.Prompt.updated_at.desc())
     )
     
+    # Apply search filter if provided
     if search:
         search = f"%{search}%"
         stmt = stmt.filter(
@@ -34,27 +53,47 @@ async def get_prompts(db: AsyncSession, skip: int = 0, limit: int = 100, search:
             )
         )
     
+    # Execute the query
     result = await db.execute(stmt)
     prompts = result.scalars().all()
     
-    # Ensure all relationships are loaded
+    # If user_id is provided, get the set of liked prompt IDs for this user
+    user_liked_prompt_ids = set()
+    if user_id:
+        user_liked_prompt_ids = await get_user_liked_prompt_ids(db, user_id)
+    
+    # Process each prompt
     for prompt in prompts:
-        # Explicitly load relationships
-        if prompt.category_id:
+        # Set is_liked flag if user is authenticated
+        if user_id:
+            prompt.is_liked = prompt.id in user_liked_prompt_ids
+        
+        # Ensure category is loaded
+        if prompt.category_id and not prompt.category:
             prompt.category = await db.get(models.Category, prompt.category_id)
+        
+        # Ensure tags are loaded
         if prompt.tags is None:
             prompt.tags = []
-        else:
-            # Use a subquery to load tags in a single query
+        elif not prompt.tags:  # If empty list, try to load
             tag_ids = [tag.id for tag in prompt.tags]
-            stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
-            result = await db.execute(stmt)
-            prompt.tags = result.scalars().all()
+            if tag_ids:
+                tag_stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
+                tag_result = await db.execute(tag_stmt)
+                prompt.tags = tag_result.scalars().all()
     
     return prompts
 
-async def get_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
-    """Get a single prompt by ID"""
+async def get_prompt(
+    db: AsyncSession, 
+    prompt_id: int, 
+    user_id: Optional[str] = None
+) -> Optional[models.Prompt]:
+    """
+    Get a single prompt by ID with category and tags.
+    If user_id is provided, will include like status for that user.
+    """
+    # Base query for the prompt
     stmt = (
         select(models.Prompt)
         .options(
@@ -63,137 +102,152 @@ async def get_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
         )
         .where(models.Prompt.id == prompt_id)
     )
+    
+    # Execute the query
     result = await db.execute(stmt)
     prompt = result.scalars().first()
     
     if prompt:
-        # Ensure all relationships are loaded
-        if prompt.category_id:
+        # Set is_liked flag if user is authenticated
+        if user_id:
+            prompt.is_liked = await is_prompt_liked_by_user(db, prompt_id, user_id)
+        
+        # Ensure category is loaded
+        if prompt.category_id and not prompt.category:
             prompt.category = await db.get(models.Category, prompt.category_id)
+        
+        # Ensure tags are loaded
         if prompt.tags is None:
             prompt.tags = []
-        else:
-            # Use a subquery to load tags in a single query
+        elif not prompt.tags:  # If empty list, try to load
             tag_ids = [tag.id for tag in prompt.tags]
-            stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
-            result = await db.execute(stmt)
-            prompt.tags = result.scalars().all()
+            if tag_ids:
+                tag_stmt = select(models.Tag).where(models.Tag.id.in_(tag_ids))
+                tag_result = await db.execute(tag_stmt)
+                prompt.tags = tag_result.scalars().all()
     
     return prompt
 
-async def create_prompt(db: AsyncSession, prompt: schemas.PromptCreate, user_id: int = 1) -> Union[models.Prompt, Dict[str, Any]]:
-    """Create a new prompt with tags"""
-    try:
-        # Check for similar prompts
-        existing_prompts = await get_prompts(db)
-        for existing in existing_prompts:
-            similarity = calculate_similarity(prompt.content, existing.content)
-            if similarity > 90:  # 90% similarity threshold
-                return {"similar_prompt_id": existing.id, "similarity": similarity}
+async def create_prompt(
+    db: AsyncSession, 
+    prompt: schemas.PromptCreate, 
+    user_id: Optional[str] = None
+):
+    """
+    Create a new prompt with optional category and tags.
+    Returns the created prompt or a dictionary with similar prompt info if a similar prompt exists.
+    """
+    # Check if a similar prompt already exists
+    existing_prompts = await get_prompts(db, search=prompt.content, limit=5, user_id=user_id)
+    
+    for existing_prompt in existing_prompts:
+        similarity = calculate_similarity(prompt.content, existing_prompt.content)
+        if similarity > 80:  # Threshold for considering prompts similar
+            return {
+                "similar_prompt_id": existing_prompt.id,
+                "similarity": similarity
+            }
+    
+    # Create the prompt
+    db_prompt = models.Prompt(
+        title=prompt.title,
+        content=prompt.content,
+        category_id=prompt.category_id,
+        user_id=user_id  # Store the user ID who created the prompt
+    )
+    
+    db.add(db_prompt)
+    await db.commit()
+    await db.refresh(db_prompt)
+    
+    # Add tags if provided
+    if prompt.tag_names:
+        for tag_name in prompt.tag_names:
+            db_tag = await get_or_create_tag(db, tag_name.strip())
+            if db_tag not in db_prompt.tags:
+                db_prompt.tags.append(db_tag)
         
-        # Create prompt
-        db_prompt = models.Prompt(
-            title=prompt.title,
-            content=prompt.content,
-            category_id=prompt.category_id,
-        )
-        
-        # Add tags if any
-        if prompt.tag_names:
-            for tag_name in prompt.tag_names:
-                tag = await get_or_create_tag(db, tag_name)
-                if tag not in db_prompt.tags:
-                    db_prompt.tags.append(tag)
-        
-        db.add(db_prompt)
         await db.commit()
-        
-        # Refresh the prompt to get the generated ID
         await db.refresh(db_prompt)
-        
-        # Create a new query to get the prompt with relationships loaded
-        stmt = (
-            select(models.Prompt)
-            .options(
-                selectinload(models.Prompt.category),
-                selectinload(models.Prompt.tags)
-            )
-            .where(models.Prompt.id == db_prompt.id)
-        )
-        
-        result = await db.execute(stmt)
-        db_prompt = result.scalar_one()
-        
-        # Create response with proper serialization
-        response_data = {
-            "id": db_prompt.id,
-            "title": db_prompt.title,
-            "content": db_prompt.content,
-            "created_at": db_prompt.created_at,
-            "updated_at": db_prompt.updated_at,
-            "category_id": db_prompt.category_id,
-            "category": {
-                "id": db_prompt.category.id,
-                "name": db_prompt.category.name,
-                "description": db_prompt.category.description,
-                "created_at": db_prompt.category.created_at
-            } if db_prompt.category else None,
-            "tags": [{
-                "id": tag.id,
-                "name": tag.name,
-                "created_at": tag.created_at
-            } for tag in db_prompt.tags],
-            "tag_names": [tag.name for tag in db_prompt.tags]
-        }
-        
-        return response_data
-        
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    
+    return db_prompt
 
 async def update_prompt(
     db: Session, 
     prompt_id: int, 
-    prompt: schemas.PromptUpdate
-) -> Union[models.Prompt, Dict[str, Any], None]:
-    """Update an existing prompt"""
-    db_prompt = await get_prompt(db, prompt_id)
+    prompt: schemas.PromptUpdate,
+    user_id: Optional[str] = None
+):
+    """
+    Update an existing prompt.
+    Returns the updated prompt or a dictionary with similar prompt info if a similar prompt exists.
+    """
+    # Get the existing prompt
+    db_prompt = await get_prompt(db, prompt_id, user_id=user_id)
     if not db_prompt:
         return None
     
-    # Check for similar prompts (excluding self)
-    if prompt.content is not None:
-        stmt = select(models.Prompt).where(models.Prompt.id != prompt_id)
-        result = await db.execute(stmt)
-        existing_prompts = result.scalars().all()
+    # Check if content is being updated and if a similar prompt exists
+    if prompt.content and prompt.content != db_prompt.content:
+        existing_prompts = await get_prompts(db, search=prompt.content, limit=5, user_id=user_id)
         
-        for existing in existing_prompts:
-            similarity = calculate_similarity(prompt.content, existing.content)
-            if similarity > 90:  # 90% similarity threshold
-                return {"similar_prompt_id": existing.id, "similarity": similarity}
+        for existing_prompt in existing_prompts:
+            if existing_prompt.id == prompt_id:
+                continue  # Skip the current prompt
+                
+            similarity = calculate_similarity(prompt.content, existing_prompt.content)
+            if similarity > 80:  # Threshold for considering prompts similar
+                return {
+                    "similar_prompt_id": existing_prompt.id,
+                    "similarity": similarity
+                }
     
-    # Update fields
-    update_data = prompt.model_dump(exclude_unset=True, exclude={"tag_names"})
-    for key, value in update_data.items():
-        setattr(db_prompt, key, value)
+    # Update prompt fields if provided
+    if prompt.title is not None:
+        db_prompt.title = prompt.title
+    if prompt.content is not None:
+        db_prompt.content = prompt.content
+    if prompt.category_id is not None:
+        db_prompt.category_id = prompt.category_id
     
     # Update tags if provided
     if prompt.tag_names is not None:
+        # Clear existing tags
         db_prompt.tags = []
+        await db.commit()
+        
+        # Add new tags
         for tag_name in prompt.tag_names:
-            tag = await get_or_create_tag(db, tag_name)
-            db_prompt.tags.append(tag)
+            db_tag = await get_or_create_tag(db, tag_name.strip())
+            if db_tag not in db_prompt.tags:
+                db_prompt.tags.append(db_tag)
     
+    db_prompt.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(db_prompt)
-    return db_prompt
+    
+    # Return the updated prompt with fresh data
+    return await get_prompt(db, prompt_id, user_id=user_id)
 
-async def delete_prompt(db: Session, prompt_id: int) -> Optional[models.Prompt]:
-    """Delete a prompt"""
-    db_prompt = await get_prompt(db, prompt_id)
+async def delete_prompt(
+    db: Session, 
+    prompt_id: int,
+    user_id: Optional[str] = None
+):
+    """
+    Delete a prompt.
+    If user_id is provided, only the owner can delete the prompt.
+    """
+    db_prompt = await get_prompt(db, prompt_id=prompt_id, user_id=user_id)
     if not db_prompt:
         return None
+    
+    # Check if the user is the owner of the prompt
+    if user_id and db_prompt.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this prompt"
+        )
     
     await db.delete(db_prompt)
     await db.commit()
@@ -306,12 +360,82 @@ async def get_tag(db: Session, tag_id: int) -> Optional[models.Tag]:
     result = await db.execute(stmt)
     return result.scalars().first()
 
-async def delete_tag(db: Session, tag_id: int) -> Optional[models.Tag]:
+async def delete_tag(db: Session, tag_id: int):
     """Delete a tag (will remove from prompts but not delete prompts)"""
-    db_tag = await get_tag(db, tag_id)
+    db_tag = db.get(models.Tag, tag_id)
     if not db_tag:
-        return None
-    
-    await db.delete(db_tag)
-    await db.commit()
+        raise HTTPException(status_code=404, detail="Tag not found")
+    db.delete(db_tag)
+    db.commit()
     return db_tag
+
+
+async def like_prompt(db: AsyncSession, prompt_id: int, user_id: str) -> models.Prompt:
+    """
+    Like a prompt for a user. If already liked, removes the like.
+    Returns the updated prompt with the new like count.
+    """
+    # Check if prompt exists
+    stmt = select(models.Prompt).where(models.Prompt.id == prompt_id)
+    result = await db.execute(stmt)
+    prompt = result.scalars().first()
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Check if already liked
+    stmt = select(models.PromptLike).where(
+        and_(
+            models.PromptLike.prompt_id == prompt_id,
+            models.PromptLike.user_id == user_id
+        )
+    )
+    result = await db.execute(stmt)
+    existing_like = result.scalars().first()
+    
+    if existing_like:
+        # Unlike: remove the like and decrement count
+        await db.delete(existing_like)
+        prompt.like_count = max(0, prompt.like_count - 1)
+    else:
+        # Like: add a new like and increment count
+        like = models.PromptLike(prompt_id=prompt_id, user_id=user_id)
+        db.add(like)
+        prompt.like_count += 1
+    
+    prompt.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(prompt)
+    return prompt
+
+
+async def get_user_liked_prompt_ids(db: AsyncSession, user_id: str) -> Set[int]:
+    """Get a set of prompt IDs that the user has liked"""
+    stmt = select(models.PromptLike.prompt_id).where(
+        models.PromptLike.user_id == user_id
+    )
+    result = await db.execute(stmt)
+    return {row[0] for row in result.all()}
+
+
+async def get_prompt_likes_count(db: AsyncSession, prompt_id: int) -> int:
+    """Get the number of likes for a prompt"""
+    stmt = select(models.Prompt).where(models.Prompt.id == prompt_id)
+    result = await db.execute(stmt)
+    prompt = result.scalars().first()
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    return prompt.like_count
+
+
+async def is_prompt_liked_by_user(
+    db: AsyncSession, prompt_id: int, user_id: str
+) -> bool:
+    """Check if a prompt is liked by a specific user"""
+    stmt = select(models.PromptLike).where(
+        and_(
+            models.PromptLike.prompt_id == prompt_id,
+            models.PromptLike.user_id == user_id
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first() is not None
