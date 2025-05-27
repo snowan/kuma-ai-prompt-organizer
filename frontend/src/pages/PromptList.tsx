@@ -4,13 +4,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useSearchParams, useNavigate } from 'react-router-dom';
 import { getPrompts, getCategories, likePrompt } from '../services/promptService';
 import type { Prompt, Category } from '../types';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 
 const PromptList = () => {
-  const [searchParams] = useSearchParams();
-  const [likedPrompts, setLikedPrompts] = useState<Set<number>>(new Set());
+  const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
   const tagName = searchParams.get('tag') || undefined;
+  const likedParam = searchParams.get('liked') || '';
+  
+  // Initialize liked prompts from URL or create a new Set
+  const [likedPrompts, setLikedPrompts] = useState<Set<number>>(
+    () => new Set(likedParam ? likedParam.split(',').map(Number) : [])
+  );
+  
+  // Update URL when likedPrompts changes
+  const updateLikedInUrl = (newLiked: Set<number>) => {
+    const params = new URLSearchParams(searchParams);
+    const likedString = Array.from(newLiked).join(',');
+    if (likedString) {
+      params.set('liked', likedString);
+    } else {
+      params.delete('liked');
+    }
+    setSearchParams(params, { replace: true });
+  };
   const queryClient = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -27,7 +44,7 @@ const PromptList = () => {
     queryFn: getCategories,
   });
 
-  // Like mutation
+  // Like mutation with optimistic updates
   const likeMutation = useMutation({
     mutationFn: likePrompt,
     onMutate: async (promptId: number) => {
@@ -43,8 +60,7 @@ const PromptList = () => {
           prompt.id === promptId 
             ? { 
                 ...prompt, 
-                likes: (prompt.likes || 0) + 1,
-                is_liked: true 
+                likes: (prompt.likes || 0) + 1
               } 
             : prompt
         )
@@ -67,7 +83,7 @@ const PromptList = () => {
       });
     },
     onSettled: () => {
-      // Always refetch after error or success
+      // Refetch the prompts to ensure we have the latest data
       queryClient.invalidateQueries({ queryKey: ['prompts', { category_id: categoryId, tag: tagName }] });
     },
   });
@@ -78,7 +94,7 @@ const PromptList = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Toggle like state
+    // Toggle like state locally for immediate UI feedback
     const newLikedPrompts = new Set(likedPrompts);
     const isLiked = newLikedPrompts.has(prompt.id);
     
@@ -88,29 +104,10 @@ const PromptList = () => {
       newLikedPrompts.add(prompt.id);
     }
     setLikedPrompts(newLikedPrompts);
+    updateLikedInUrl(newLikedPrompts);
     
-    // Call the mutation
-    likeMutation.mutate(prompt.id, {
-      onSuccess: (updatedPrompt) => {
-        // Update the UI with the server response
-        queryClient.setQueryData<Prompt[]>(
-          ['prompts', { category_id: categoryId, tag: tagName }],
-          (oldData = []) => oldData.map(p => 
-            p.id === updatedPrompt.id ? updatedPrompt : p
-          )
-        );
-      },
-      onError: () => {
-        // Revert on error
-        const revertedLikedPrompts = new Set(likedPrompts);
-        if (likedPrompts.has(prompt.id)) {
-          revertedLikedPrompts.delete(prompt.id);
-        } else {
-          revertedLikedPrompts.add(prompt.id);
-        }
-        setLikedPrompts(revertedLikedPrompts);
-      }
-    });
+    // Call the mutation to update the server
+    likeMutation.mutate(prompt.id);
   };
 
   // Filter prompts by category if categoryId is provided
