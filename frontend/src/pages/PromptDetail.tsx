@@ -1,6 +1,6 @@
-import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spinner, Text, VStack, useToast } from '@chakra-ui/react';
+import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spinner, Text, VStack, useToast, HStack } from '@chakra-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { deletePrompt, getPrompt, getCategories } from '../services/promptService';
 import type { Prompt, Category } from '../types';
@@ -10,6 +10,7 @@ const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: prompt, isLoading: isLoadingPrompt, error: promptError } = useQuery<Prompt>({
     queryKey: ['prompt', id],
@@ -124,21 +125,33 @@ const PromptDetail = () => {
           </Box>
 
           {prompt.tags && prompt.tags.length > 0 && (
-            <Flex mt={4} gap={2} flexWrap="wrap">
-              {prompt.tags.map((tag) => (
-                <Box
-                  key={tag.id}
-                  px={3}
-                  py={1}
-                  bg="teal.100"
-                  borderRadius="full"
-                  fontSize="sm"
-                  color="teal.800"
-                >
-                  {tag.name}
-                </Box>
-              ))}
-            </Flex>
+            <Box mt={4}>
+              <Text fontSize="sm" color="gray.500" mb={2}>Tags:</Text>
+              <Flex gap={2} flexWrap="wrap">
+                {prompt.tags.map((tag) => (
+                  <Box
+                    key={tag.id}
+                    as="button"
+                    px={3}
+                    py={1}
+                    bg="teal.100"
+                    borderRadius="full"
+                    fontSize="sm"
+                    color="teal.800"
+                    _hover={{ bg: 'teal.200' }}
+                    transition="background-color 0.2s"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Navigate to prompt list with tag filter
+                      navigate(`/prompts?tag=${encodeURIComponent(tag.name)}`);
+                    }}
+                  >
+                    {tag.name}
+                  </Box>
+                ))}
+              </Flex>
+            </Box>
           )}
         </CardBody>
       </Card>
