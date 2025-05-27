@@ -118,9 +118,32 @@ const PromptList = () => {
                 )}
               </CardHeader>
               <CardBody>
-                <Text noOfLines={2} color="gray.600">
+                <Text noOfLines={2} color="gray.600" mb={3}>
                   {prompt.content}
                 </Text>
+                <Flex align="center" mt={2}>
+                  <HStack spacing={1}>
+                    <Box
+                      as="button"
+                      fontSize="lg"
+                      lineHeight={1}
+                      onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // TODO: Implement like functionality
+                      }}
+                      _hover={{
+                        transform: 'scale(1.2)'
+                      }}
+                      transition="transform 0.2s"
+                    >
+                      {prompt.likes > 0 ? '❤️' : '🤍'}
+                    </Box>
+                    <Text fontSize="sm" color="gray.600">
+                      {prompt.likes || 0}
+                    </Text>
+                  </HStack>
+                </Flex>
                 {prompt.tags && prompt.tags.length > 0 && (
                   <Flex mt={3} gap={2} flexWrap="wrap">
                     {prompt.tags.map((tag) => (

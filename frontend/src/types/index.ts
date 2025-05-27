@@ -18,6 +18,7 @@ export interface Prompt {
   category_id?: number;
   category?: Category;
   tags?: Tag[];
+  likes: number;
   created_at: string;
   updated_at?: string;
 }
