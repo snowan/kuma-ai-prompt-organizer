@@ -1,4 +1,4 @@
-# AI Prompt Manager
+# Kuma AI Prompt Manager
 
 A web application for managing and organizing AI prompts with categories and tags. This application allows users to create, read, update, and delete prompts, organize them into categories, and tag them for easy searching and filtering.
 
