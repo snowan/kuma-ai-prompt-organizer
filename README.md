@@ -7,12 +7,40 @@ A web application for managing and organizing AI prompts with categories and tag
 - **Prompt Management**: Create, read, update, and delete prompts
 - **Categorization**: Organize prompts into categories
 - **Tagging**: Add tags to prompts for better organization
+- **AI-Powered Assistance**: Get AI-generated suggestions to improve your prompts
+- **Smart Tagging**: Automatic tag suggestions based on prompt content
 - **Search**: Full-text search across prompts
 - **Duplicate Detection**: Automatically detects similar prompts to prevent duplicates
 - **RESTful API**: Built with FastAPI for the backend
-- **Modern Frontend**: Built with React (coming soon)
+- **Modern Frontend**: Built with React and TypeScript
 - De-duplication of similar prompts
 - Search and filter functionality
+
+## AI Features
+
+Kuma AI Prompt Manager includes powerful AI capabilities to enhance your prompt management experience:
+
+### AI-Powered Prompt Enhancement
+- Get AI-generated suggestions to improve your prompts
+- Automatically refine and optimize your prompts for better results
+- Receive alternative phrasings and improvements
+
+### Smart Tagging System
+- AI suggests relevant tags based on prompt content
+- One-click application of suggested tags
+- Helps maintain consistent tagging across your prompt library
+
+### How to Use AI Features
+1. While creating or editing a prompt, click the "AI Assistant" button
+2. Enter your initial prompt and click "Get AI Suggestions"
+3. Review the improved prompt and suggestions
+4. Click "Apply Suggestion" to apply the improved prompt and suggested tags
+5. Edit further if needed before saving
+
+### Requirements
+- Backend server must be running
+- Internet connection (for AI API calls)
+- Google AI API key (for AI features) - add to your `.env` file
 
 ## Tech Stack
 
