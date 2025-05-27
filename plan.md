@@ -41,6 +41,7 @@
      * title (TEXT, NOT NULL)  
      * prompt\_text (TEXT, NOT NULL)  
      * category\_id (INTEGER, FOREIGN KEY REFERENCES categories(id))  
+     * like_count (INTEGER, DEFAULT 0)  
      * created\_at (DATETIME, DEFAULT CURRENT\_TIMESTAMP)  
      * updated\_at (DATETIME, DEFAULT CURRENT\_TIMESTAMP)  
    * **categories table:**  
@@ -48,7 +49,20 @@
      * name (TEXT, NOT NULL, UNIQUE)  
    * **labels table:**  
      * id (INTEGER, PRIMARY KEY, AUTOINCREMENT)  
-     * name (TEXT, NOT NULL, UNIQUE)  
+     * name (TEXT, NOT NULL, UNIQUE)
+   * **users table:**
+     * id (INTEGER, PRIMARY KEY, AUTOINCREMENT)
+     * username (VARCHAR(50), UNIQUE, NOT NULL)
+     * email (VARCHAR(100), UNIQUE, NOT NULL)
+     * hashed_password (VARCHAR(128), NOT NULL)
+     * created_at (DATETIME, DEFAULT CURRENT_TIMESTAMP)
+     * is_active (BOOLEAN, DEFAULT TRUE)
+   * **user_likes table:**
+     * id (INTEGER, PRIMARY KEY, AUTOINCREMENT)
+     * user_id (INTEGER, FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE)
+     * prompt_id (INTEGER, FOREIGN KEY REFERENCES prompts(id) ON DELETE CASCADE)
+     * created_at (DATETIME, DEFAULT CURRENT_TIMESTAMP)
+     * UNIQUE(user_id, prompt_id)  
    * **prompt\_labels table (Junction Table for Many-to-Many relationship):**  
      * prompt\_id (INTEGER, FOREIGN KEY REFERENCES prompts(id))  
      * label\_id (INTEGER, FOREIGN KEY REFERENCES labels(id))  
@@ -58,6 +72,25 @@
    * Set up initial migration scripts if using an ORM (e.g., SQLAlchemy with Alembic).
 
 ### **Phase 2: Backend API Development (Estimated: 2-3 Weeks)**
+
+#### Authentication & User Management
+- [ ] Set up user authentication (JWT)
+- [ ] Implement user registration and login endpoints
+- [ ] Add password hashing and verification
+- [ ] Create user profile management
+
+#### Likes Feature
+- [ ] Implement like/unlike functionality
+- [ ] Add like count to prompt model
+- [ ] Create API endpoints for likes:
+  - `POST /api/prompts/{prompt_id}/like` - Like a prompt
+  - `DELETE /api/prompts/{prompt_id}/like` - Unlike a prompt
+  - `GET /api/prompts/{prompt_id}/liked` - Check if current user liked a prompt
+  - `GET /api/users/me/likes` - Get current user's liked prompts
+- [ ] Add like count to prompt responses
+- [ ] Implement pagination for liked prompts list
+- [ ] Add database indexes for performance
+- [ ] Write unit tests for like functionality
 
 1. **Core API Endpoints (RESTful principles):**  
    * **Prompts (/api/prompts):**  
@@ -93,6 +126,27 @@
    * Provide clear and consistent error messages.
 
 ### **Phase 3: Frontend Development (Estimated: 3-4 Weeks)**
+
+#### Authentication Flow
+- [ ] Create login/registration forms
+- [ ] Implement JWT token storage and refresh logic
+- [ ] Add protected routes
+- [ ] Create user profile page
+
+#### Likes UI Components
+- [ ] Create like button component with animations
+- [ ] Display like count on prompt cards
+- [ ] Implement liked prompts view
+- [ ] Add loading states for like actions
+- [ ] Show feedback on like/unlike actions
+- [ ] Add tooltips for like count details
+
+#### User Experience
+- [ ] Add visual feedback for liked state
+- [ ] Implement optimistic UI updates
+- [ ] Add loading skeletons for like counts
+- [ ] Handle offline like actions
+- [ ] Add error handling and retry logic
 
 1. **UI/UX Design & Prototyping (Low-fidelity):**  
    * Sketch out basic layouts for key screens:  
@@ -175,8 +229,12 @@
 ## **5. Timeline Summary (Approximate)**
 
 * **Phase 1 (Setup):** 1 Week  
-* **Phase 2 (Backend):** 2-3 Weeks  
-* **Phase 3 (Frontend):** 3-4 Weeks  
+* **Phase 2 (Backend):** 3-4 Weeks  
+  * Core functionality: 2 weeks
+  * Authentication & Likes: 1-2 weeks
+* **Phase 3 (Frontend):** 4-5 Weeks
+  * Core UI: 2-3 weeks
+  * Authentication & Likes UI: 1-2 weeks  
 * **Phase 4 (Integration & Testing):** 1-2 Weeks  
 * **Phase 5 (Deployment & Docs):** 1 Week  
 * **Total Estimated Time:** 8-11 Weeks

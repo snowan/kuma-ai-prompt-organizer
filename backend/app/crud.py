@@ -222,96 +222,181 @@ async def get_or_create_tag(db: AsyncSession, name: str) -> models.Tag:
             detail=f"Failed to get or create tag: {str(e)}"
         )
 
-async def get_categories(db: Session, skip: int = 0, limit: int = 100) -> List[models.Category]:
-    """Get all categories"""
-    stmt = (
-        select(models.Category)
-        .options(selectinload(models.Category.prompts))
-        .offset(skip)
-        .limit(limit)
-    )
-    result = await db.execute(stmt)
-    return result.scalars().all()
+async def get_categories(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.Category]:
+    """Get all categories with their prompts"""
+    try:
+        result = await db.execute(
+            select(models.Category)
+            .options(selectinload(models.Category.prompts))
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get categories: {str(e)}"
+        )
 
-async def get_category_by_name(db: Session, name: str) -> Optional[models.Category]:
+async def get_category_by_name(db: AsyncSession, name: str) -> Optional[models.Category]:
     """Get a category by name"""
-    stmt = select(models.Category).where(models.Category.name == name)
-    result = await db.execute(stmt)
-    return result.scalars().first()
+    try:
+        stmt = (
+            select(models.Category)
+            .where(models.Category.name == name)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get category by name: {str(e)}"
+        )
 
-async def get_category(db: Session, category_id: int) -> Optional[models.Category]:
+async def get_category(db: AsyncSession, category_id: int) -> Optional[models.Category]:
     """Get a single category by ID"""
-    stmt = (
-        select(models.Category)
-        .options(selectinload(models.Category.prompts))
-        .where(models.Category.id == category_id)
-    )
-    result = await db.execute(stmt)
-    return result.scalars().first()
+    try:
+        stmt = (
+            select(models.Category)
+            .options(selectinload(models.Category.prompts))
+            .where(models.Category.id == category_id)
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get category: {str(e)}"
+        )
 
-async def create_category(db: Session, category: schemas.CategoryCreate) -> models.Category:
+async def create_category(db: AsyncSession, category: schemas.CategoryCreate) -> models.Category:
     """Create a new category"""
-    db_category = models.Category(**category.model_dump())
-    db.add(db_category)
-    await db.commit()
-    await db.refresh(db_category)
-    return db_category
+    try:
+        db_category = models.Category(**category.dict())
+        db.add(db_category)
+        await db.commit()
+        await db.refresh(db_category)
+        return db_category
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create category: {str(e)}"
+        )
 
 async def update_category(
-    db: Session, 
+    db: AsyncSession, 
     category_id: int, 
     category: schemas.CategoryUpdate
-) -> Optional[models.Category]:
+) -> models.Category:
     """Update a category"""
-    db_category = await get_category(db, category_id)
-    if not db_category:
-        return None
-    
-    update_data = category.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_category, key, value)
-    
-    await db.commit()
-    await db.refresh(db_category)
-    return db_category
+    try:
+        db_category = await get_category(db, category_id=category_id)
+        if not db_category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        
+        # Update fields from the request
+        update_data = category.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_category, field, value)
+        
+        db.add(db_category)
+        await db.commit()
+        await db.refresh(db_category)
+        return db_category
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update category: {str(e)}"
+        )
 
-async def delete_category(db: Session, category_id: int) -> Optional[models.Category]:
+async def delete_category(db: AsyncSession, category_id: int) -> models.Category:
     """Delete a category"""
-    db_category = await get_category(db, category_id)
-    if not db_category:
-        return None
+    try:
+        db_category = await get_category(db, category_id=category_id)
+        if not db_category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        
+        await db.delete(db_category)
+        await db.commit()
+        return db_category
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete category: {str(e)}"
+        )
+
+async def get_tags(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.Tag]:
+    """Get all tags with their associated prompts"""
+    try:
+        stmt = (
+            select(models.Tag)
+            .options(selectinload(models.Tag.prompts))
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get tags: {str(e)}"
+        )
+
+async def get_tag(db: AsyncSession, tag_id: int) -> Optional[models.Tag]:
+    """Get a single tag by ID with its associated prompts"""
+    try:
+        stmt = (
+            select(models.Tag)
+            .options(selectinload(models.Tag.prompts))
+            .where(models.Tag.id == tag_id)
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get tag: {str(e)}"
+        )
+
+async def delete_tag(db: AsyncSession, tag_id: int) -> models.Tag:
+    """
+    Delete a tag (will remove from prompts but not delete prompts)
     
-    await db.delete(db_category)
-    await db.commit()
-    return db_category
-
-async def get_tags(db: Session, skip: int = 0, limit: int = 100) -> List[models.Tag]:
-    """Get all tags"""
-    stmt = (
-        select(models.Tag)
-        .options(selectinload(models.Tag.prompts))
-        .offset(skip)
-        .limit(limit)
-    )
-    result = await db.execute(stmt)
-    return result.scalars().all()
-
-async def get_tag(db: Session, tag_id: int) -> Optional[models.Tag]:
-    """Get a single tag by ID"""
-    stmt = (
-        select(models.Tag)
-        .options(selectinload(models.Tag.prompts))
-        .where(models.Tag.id == tag_id)
-    )
-    result = await db.execute(stmt)
-    return result.scalars().first()
-
-async def delete_tag(db: Session, tag_id: int) -> Optional[models.Tag]:
-    """Delete a tag (will remove from prompts but not delete prompts)"""
-    db_tag = await get_tag(db, tag_id)
-    if not db_tag:
-        return None
-    
-    await db.delete(db_tag)
-    await db.commit()
-    return db_tag
+    Args:
+        db: Database session
+        tag_id: ID of the tag to delete
+        
+    Returns:
+        The deleted tag
+        
+    Raises:
+        HTTPException: If tag not found or deletion fails
+    """
+    try:
+        db_tag = await get_tag(db, tag_id=tag_id)
+        if not db_tag:
+            raise HTTPException(status_code=404, detail="Tag not found")
+        
+        await db.delete(db_tag)
+        await db.commit()
+        return db_tag
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete tag: {str(e)}"
+        )

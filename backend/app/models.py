@@ -1,8 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, Table, Column, Integer, String, DateTime, func
+from sqlalchemy import ForeignKey, Table, Column, Integer, String, DateTime, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
+
+# Import User model to avoid circular imports
+# User model will be imported after it's defined
 
 class Base(DeclarativeBase):
     pass
@@ -24,6 +27,7 @@ class Prompt(Base):
     category_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("categories.id"), nullable=True
     )
+    like_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -37,6 +41,11 @@ class Prompt(Base):
     )
     tags: Mapped[List["Tag"]] = relationship(
         "Tag", secondary=prompt_tags, back_populates="prompts"
+    )
+    liked_by_users: Mapped[List["User"]] = relationship(
+        "User", 
+        secondary="user_likes", 
+        back_populates="liked_prompts"
     )
 
 class Category(Base):
@@ -64,6 +73,10 @@ class Tag(Base):
     )
 
     # Relationships
-    prompts: Mapped[List["Prompt"]] = relationship(
+    prompts: Mapped[List[Prompt]] = relationship(
         "Prompt", secondary=prompt_tags, back_populates="tags"
     )
+
+# User and UserLike models are now in a separate file to avoid circular imports
+# Import them here to make them available in the module
+from app.models.user import User, UserLike  # noqa: E402

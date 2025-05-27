@@ -1,11 +1,13 @@
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 
-from app.database import engine
-from app.models import Base
+from app.database import engine, get_db
+from app.models import Base, User, UserLike  # Import models to ensure tables are created
 from app.api.api import api_router
+from app.config import settings
 
 # This will be called when the application starts
 @asynccontextmanager
@@ -30,7 +32,7 @@ app = FastAPI(
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
