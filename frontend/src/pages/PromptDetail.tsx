@@ -1,0 +1,139 @@
+import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spinner, Text, VStack, useToast } from '@chakra-ui/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import { deletePrompt, getPrompt } from '../services/promptService';
+import type { Prompt } from '../services/promptService';
+
+const PromptDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const { data: prompt, isLoading, error } = useQuery<Prompt>({
+    queryKey: ['prompt', id],
+    queryFn: () => getPrompt(Number(id)),
+    enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePrompt(Number(id)),
+    onSuccess: () => {
+      toast({
+        title: 'Prompt deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate('/prompts');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error deleting prompt',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Flex justify="center" mt={8}>
+        <Spinner size="xl" />
+      </Flex>
+    );
+  }
+
+  if (error || !prompt) {
+    return (
+      <Box color="red.500" textAlign="center" mt={8}>
+        {error ? error.message : 'Prompt not found'}
+      </Box>
+    );
+  }
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this prompt?')) {
+      deleteMutation.mutate();
+    }
+  };
+
+  return (
+    <VStack spacing={6} align="stretch">
+      <Flex justify="space-between" align="center">
+        <Heading>{prompt.title}</Heading>
+        <Flex gap={2}>
+          <IconButton
+            aria-label="Edit prompt"
+            icon={<EditIcon />}
+            onClick={() => navigate(`/prompts/${id}/edit`)}
+          />
+          <IconButton
+            aria-label="Delete prompt"
+            icon={<DeleteIcon />}
+            colorScheme="red"
+            variant="outline"
+            onClick={handleDelete}
+            isLoading={deleteMutation.isPending}
+          />
+        </Flex>
+      </Flex>
+
+      <Card>
+        <CardHeader pb={0}>
+          {prompt.category_id && (
+            <Text color="gray.500" mb={2}>
+              Category: {prompt.category_id}
+            </Text>
+          )}
+        </CardHeader>
+        <CardBody>
+          <Box
+            whiteSpace="pre-wrap"
+            p={4}
+            bg="gray.50"
+            borderRadius="md"
+            fontFamily="mono"
+            fontSize="sm"
+          >
+            {prompt.content}
+          </Box>
+
+          {prompt.tags && prompt.tags.length > 0 && (
+            <Flex mt={4} gap={2} flexWrap="wrap">
+              {prompt.tags.map((tag) => (
+                <Box
+                  key={tag.id}
+                  px={3}
+                  py={1}
+                  bg="teal.100"
+                  borderRadius="full"
+                  fontSize="sm"
+                  color="teal.800"
+                >
+                  {tag.name}
+                </Box>
+              ))}
+            </Flex>
+          )}
+        </CardBody>
+      </Card>
+
+      <Box>
+        <Button as="a" href="/prompts" variant="outline" mr={2}>
+          Back to Prompts
+        </Button>
+        <Button
+          colorScheme="blue"
+          onClick={() => navigate(`/prompts/${id}/edit`)}
+        >
+          Edit Prompt
+        </Button>
+      </Box>
+    </VStack>
+  );
+};
+
+export default PromptDetail;

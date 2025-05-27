@@ -1,0 +1,21 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
+include .env.example
+include requirements*.txt
+recursive-include app/migrations *
+recursive-include tests *
+
+# Exclude development and environment files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude .env
+global-exclude .venv
+global-exclude venv
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude .coverage
+global-exclude htmlcov/
