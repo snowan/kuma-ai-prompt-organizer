@@ -1,8 +1,8 @@
-import { Box, Card, Flex, Heading, Spinner, Text, VStack, HStack, useToast, Button } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
+import { Box, Card, Flex, Heading, Spinner, Text, VStack, HStack, useToast, Button, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText } from '@chakra-ui/react';
+import { AddIcon, StarIcon } from '@chakra-ui/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useSearchParams, useNavigate } from 'react-router-dom';
-import { getPrompts, getCategories, likePrompt } from '../services/promptService';
+import { getPrompts, getCategories, likePrompt, getDashboardStats, type DashboardStats } from '../services/promptService';
 import type { Prompt, Category } from '../types';
 import { useMemo, useState } from 'react';
 
@@ -36,6 +36,12 @@ const PromptList = () => {
   const { data: prompts = [], isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
     queryKey: ['prompts', { category_id: categoryId, tag: tagName }],
     queryFn: () => getPrompts({ category_id: categoryId, tag: tagName }),
+  });
+
+  // Fetch dashboard stats
+  const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
   });
 
   // Fetch categories
@@ -157,8 +163,44 @@ const PromptList = () => {
     );
   }
 
+  // Render stats section
+  const renderStats = () => (
+    <Box mb={8} p={4} bg="white" borderRadius="lg" boxShadow="sm">
+      <Heading size="md" mb={4} display="flex" alignItems="center">
+        <StarIcon mr={2} color="yellow.500" />
+        Dashboard Overview
+      </Heading>
+      {isLoadingStats ? (
+        <Flex justify="center">
+          <Spinner />
+        </Flex>
+      ) : stats ? (
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+          <Stat p={4} bg="gray.50" borderRadius="md">
+            <StatLabel>Total Prompts</StatLabel>
+            <StatNumber fontSize="2xl">{stats.total_prompts}</StatNumber>
+            <StatHelpText>Across all categories</StatHelpText>
+          </Stat>
+          <Stat p={4} bg="gray.50" borderRadius="md">
+            <StatLabel>Categories</StatLabel>
+            <StatNumber fontSize="2xl">{stats.total_categories}</StatNumber>
+            <StatHelpText>Unique categories</StatHelpText>
+          </Stat>
+          <Stat p={4} bg="gray.50" borderRadius="md">
+            <StatLabel>Tags</StatLabel>
+            <StatNumber fontSize="2xl">{stats.total_tags}</StatNumber>
+            <StatHelpText>Unique tags</StatHelpText>
+          </Stat>
+        </SimpleGrid>
+      ) : (
+        <Text color="gray.500">No statistics available</Text>
+      )}
+    </Box>
+  );
+
   return (
     <VStack spacing={6} align="stretch">
+      {renderStats()}
       <Flex justify="space-between" align="center" mb={6}>
         <Box>
           <Text fontSize="sm" color="gray.500" mb={1}>

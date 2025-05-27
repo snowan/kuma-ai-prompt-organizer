@@ -10,6 +10,13 @@ export interface PromptCreate {
 
 export interface PromptUpdate extends Partial<PromptCreate> {}
 
+export interface DashboardStats {
+  total_prompts: number;
+  total_categories: number;
+  total_tags: number;
+  prompts_by_category: Record<string, number>;
+}
+
 interface GetPromptsParams {
   search?: string;
   category_id?: number;
@@ -33,6 +40,11 @@ export const getPrompts = async (params?: GetPromptsParams): Promise<Prompt[]> =
 
 export const getPrompt = async (id: number): Promise<Prompt> => {
   const response = await api.get<Prompt>(`/prompts/${id}`);
+  return response.data;
+};
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const response = await api.get<DashboardStats>('/prompts/stats');
   return response.data;
 };
 

@@ -1,0 +1,562 @@
+{
+    "Creative Writing & Content Generation": {
+      "name": "Creative Writing & Content Generation",
+      "description": "These prompts aim to spark imagination and generate various forms of written content.",
+      "prompts": [
+        {
+          "name": "Story Idea Generation",
+          "description": "Generate a unique story idea that includes a compelling protagonist, a strong conflict, and an unexpected plot twist, set in a [genre] world.",
+          "tags": ["storytelling", "fiction", "brainstorming"]
+        },
+        {
+          "name": "Blog Post Outline/Draft",
+          "description": "Create an informative blog post outline (or draft) explaining the concept of [topic] in simple terms, targeting [audience].",
+          "tags": ["blogging", "content creation", "outline"]
+        },
+        {
+          "name": "Character Development",
+          "description": "Describe a character for a [genre] story, focusing on their personality traits, backstory, and visual appearance.",
+          "tags": ["storytelling", "character design", "fiction"]
+        },
+        {
+          "name": "Rewrite/Rephrase Content",
+          "description": "Rewrite the following text to suit a [beginner/professional/technical] audience, maintaining clarity and engagement: [text].",
+          "tags": ["rewriting", "editing", "clarity"]
+        },
+        {
+          "name": "Social Media Post Creation",
+          "description": "Craft an engaging [platform, e.g., LinkedIn/Twitter] post about [topic] that grabs attention and encourages interaction.",
+          "tags": ["social media", "marketing", "engagement"]
+        },
+        {
+          "name": "Poem/Song Lyrics",
+          "description": "Write a short poem (or song lyrics) about [theme/emotion] in the style of [poet/genre].",
+          "tags": ["poetry", "lyrics", "creative"]
+        },
+        {
+          "name": "Dialogue Generation",
+          "description": "Write a dialogue between two characters, [Character A] and [Character B], discussing [topic] with [specific tone].",
+          "tags": ["storytelling", "scriptwriting", "dialogue"]
+        },
+        {
+          "name": "Headline/Catchphrase Brainstorming",
+          "description": "Generate 10 catchy headlines/taglines for a [product/service/event] that appeal to [target audience].",
+          "tags": ["marketing", "copywriting", "headlines"]
+        },
+        {
+          "name": "Scene Description",
+          "description": "Describe a vivid scene featuring [elements] in a [setting] with a [mood] atmosphere.",
+          "tags": ["storytelling", "description", "world-building"]
+        },
+        {
+          "name": "Creative Brainstorming for Specific Mediums",
+          "description": "Generate ideas for a [podcast episode/video script/play] about [topic], including key points and potential guests/characters.",
+          "tags": ["brainstorming", "media", "content ideas"]
+        }
+      ]
+    },
+    "Coding & Development": {
+      "name": "Coding & Development",
+      "description": "These prompts assist developers with various coding tasks, from generation to debugging.",
+      "prompts": [
+        {
+          "name": "Code Generation",
+          "description": "Write a [programming language] function to [specific task, e.g., calculate the factorial of a number]. Include comments explaining each step.",
+          "tags": ["programming", "code generation", "function"]
+        },
+        {
+          "name": "Code Explanation",
+          "description": "Explain the following [programming language] code snippet line by line: [code snippet].",
+          "tags": ["programming", "code analysis", "explanation"]
+        },
+        {
+          "name": "Code Debugging",
+          "description": "Review the following [programming language] code for errors or potential bugs and suggest improvements: [code snippet].",
+          "tags": ["programming", "debugging", "troubleshooting"]
+        },
+        {
+          "name": "Code Conversion",
+          "description": "Convert the given [source language] code to [target language]: [code snippet].",
+          "tags": ["programming", "code conversion", "language migration"]
+        },
+        {
+          "name": "Test Case Generation",
+          "description": "Write unit tests for the following [library/framework] component [component code] using [testing framework/library].",
+          "tags": ["programming", "testing", "unit tests"]
+        },
+        {
+          "name": "Algorithm/Data Structure Implementation",
+          "description": "Implement the [algorithm/data structure, e.g., quicksort algorithm] in [programming language].",
+          "tags": ["programming", "algorithms", "data structures"]
+        },
+        {
+          "name": "API Usage Examples",
+          "description": "Provide an example of how to use the [API name] to [specific task, e.g., fetch user data] in [programming language].",
+          "tags": ["programming", "API", "examples"]
+        },
+        {
+          "name": "Regular Expression (Regex) Generation",
+          "description": "Write a regex to [specific pattern, e.g., validate email addresses].",
+          "tags": ["programming", "regex", "pattern matching"]
+        },
+        {
+          "name": "Suggest Development Frameworks/Libraries",
+          "description": "Can you recommend a suitable [front-end/back-end] framework for a [type of project, e.g., real-time chat application]?",
+          "tags": ["programming", "frameworks", "libraries", "recommendation"]
+        },
+        {
+          "name": "Code Refactoring",
+          "description": "Refactor the given [language] code to improve its error handling and resilience: [code snippet].",
+          "tags": ["programming", "refactoring", "code quality"]
+        }
+      ]
+    },
+    "Education & Learning": {
+      "name": "Education & Learning",
+      "description": "These prompts are useful for students, educators, and lifelong learners.",
+      "prompts": [
+        {
+          "name": "Concept Explanation",
+          "description": "Explain [complex concept] in simple terms, as if I'm [target age/knowledge level].",
+          "tags": ["learning", "explanation", "simplification"]
+        },
+        {
+          "name": "Summarization",
+          "description": "Summarize the key points of this [article/text] in [number] bullet points.",
+          "tags": ["summarization", "reading comprehension", "study"]
+        },
+        {
+          "name": "Research Question Generation",
+          "description": "Suggest 5 research questions related to [topic] for a [grade level/academic discipline] project.",
+          "tags": ["research", "academics", "question generation"]
+        },
+        {
+          "name": "Study Guide/Outline Creation",
+          "description": "Create a study guide (or outline) for [subject/chapter] covering [key topics].",
+          "tags": ["study", "education", "outline"]
+        },
+        {
+          "name": "Problem-Solving Scenarios (Math/Science)",
+          "description": "Design a real-world problem involving [mathematical concept/scientific principle, e.g., calculating the area and perimeter of a garden].",
+          "tags": ["problem-solving", "math", "science"]
+        },
+        {
+          "name": "Grammar and Vocabulary Practice",
+          "description": "Generate 10 sentences using different types of punctuation marks: periods, commas, question marks, and exclamation points. (Or, Define the following vocabulary words and use each in a sentence: [list of words].)",
+          "tags": ["grammar", "vocabulary", "language learning"]
+        },
+        {
+          "name": "Essay/Writing Feedback",
+          "description": "Provide feedback on my essay: [essay text], focusing on [specific aspects like coherence, arguments, grammar].",
+          "tags": ["writing", "feedback", "essay"]
+        },
+        {
+          "name": "Debate/Discussion Prompts",
+          "description": "Generate 3 debate topics on [social/scientific issue] with arguments for and against each side.",
+          "tags": ["debate", "discussion", "critical thinking"]
+        },
+        {
+          "name": "Foreign Language Practice",
+          "description": "Translate the following sentence into [language] and provide a short explanation of the grammar: [sentence].",
+          "tags": ["language learning", "translation", "grammar"]
+        },
+        {
+          "name": "Learning Plan Creation",
+          "description": "Create a 30-day learning plan for [skill/topic]. I'm currently at a [beginner/intermediate/advanced] level and can dedicate [amount of time] per [day/week].",
+          "tags": ["learning", "personal development", "planning"]
+        }
+      ]
+    },
+    "Business & Marketing": {
+      "name": "Business & Marketing",
+      "description": "These prompts assist with various business functions, from strategy to content creation.",
+      "prompts": [
+        {
+          "name": "Brainstorm Business Ideas",
+          "description": "Help me brainstorm effective marketing ideas for my business, [business name]. My target audience is [describe ideal customer].",
+          "tags": ["business", "marketing", "brainstorming"]
+        },
+        {
+          "name": "Social Media Strategy",
+          "description": "Develop a tailored social media strategy for [platform, e.g., Instagram] to promote [product/service], focusing on [audience engagement, content diversity].",
+          "tags": ["social media", "marketing strategy", "business"]
+        },
+        {
+          "name": "Content Marketing Plan",
+          "description": "Design a content marketing plan for [product/service/company] that integrates SEO, focuses on the buyer's journey, and includes a detailed content calendar.",
+          "tags": ["content marketing", "SEO", "marketing plan"]
+        },
+        {
+          "name": "Product Description Writing",
+          "description": "Write several compelling product descriptions for [product name]. This product is [brief description of its purpose]. My target customers are [description].",
+          "tags": ["copywriting", "product description", "e-commerce"]
+        },
+        {
+          "name": "Email Campaign Draft",
+          "description": "Draft an email sequence for [specific audience segment, e.g., new subscribers], including a welcome message, product benefits, and a clear call to action.",
+          "tags": ["email marketing", "campaign", "sales"]
+        },
+        {
+          "name": "SEO Keyword Strategy",
+          "description": "List 10 high-traffic keywords related to [your business/industry] and develop a content plan around each keyword.",
+          "tags": ["SEO", "keywords", "content strategy"]
+        },
+        {
+          "name": "Marketing Campaign Outline",
+          "description": "Develop a marketing campaign for [specific holiday/season]. Include [offer ideas, relevant hashtags, and visuals] to connect with our audience.",
+          "tags": ["marketing campaign", "promotion", "business"]
+        },
+        {
+          "name": "Competitive Analysis",
+          "description": "Review 3 ads from [competitor name]. Identify headlines, visuals, and offers that stand out and brainstorm how to adapt them for our brand.",
+          "tags": ["competitive analysis", "marketing research", "strategy"]
+        },
+        {
+          "name": "Customer Feedback Survey",
+          "description": "Create a five-question survey to gather feedback on [your product or service].",
+          "tags": ["customer feedback", "survey", "business improvement"]
+        },
+        {
+          "name": "Meeting Agenda/Summary",
+          "description": "Generate a meeting agenda for a discussion about [topic], including key objectives, discussion points, and desired outcomes. (Or Summarize the key discussion points, action items, and decisions from the following meeting notes: [notes].)",
+          "tags": ["meetings", "productivity", "business communication"]
+        }
+      ]
+    },
+    "Personal Productivity & Organization": {
+      "name": "Personal Productivity & Organization",
+      "description": "These prompts help individuals manage tasks, time, and information.",
+      "prompts": [
+        {
+          "name": "Task Prioritization",
+          "description": "Given my to-do list: [list of tasks], and my goals for the day: [goals], help me prioritize these tasks using the [method, e.g., Eisenhower Matrix].",
+          "tags": ["productivity", "task management", "time management"]
+        },
+        {
+          "name": "Weekly Schedule/Planner",
+          "description": "Create a sample weekly study schedule for a high school student balancing academics, extracurricular activities, and free time.",
+          "tags": ["planning", "scheduling", "organization"]
+        },
+        {
+          "name": "Email Response Draft",
+          "description": "Create a professional email response to the email below. The tone should be [friendly/formal/urgent]. I want to [main objective of your response]. Include these key points: [list your points]. Original email: [paste email].",
+          "tags": ["email", "communication", "productivity"]
+        },
+        {
+          "name": "Process Optimization",
+          "description": "Help me optimize this process: [describe current process]. My goal is to [reduce time/increase efficiency/reduce errors]. Identify potential bottlenecks and suggest 3-5 specific improvements.",
+          "tags": ["optimization", "efficiency", "problem-solving"]
+        },
+        {
+          "name": "Decision Matrix",
+          "description": "Create a decision matrix to help me decide between [list options]. The key factors to consider are [list factors with relative importance].",
+          "tags": ["decision making", "analysis", "problem-solving"]
+        },
+        {
+          "name": "Brainstorm Solutions to a Personal Problem",
+          "description": "I'm struggling with [personal problem]. Brainstorm 5 different approaches or solutions I could try.",
+          "tags": ["problem-solving", "personal development", "brainstorming"]
+        },
+        {
+          "name": "Learning a New Skill Plan",
+          "description": "Outline a structured plan to learn [new skill, e.g., public speaking] over [timeframe, e.g., 3 months], including resources and practice exercises.",
+          "tags": ["learning", "skill development", "planning"]
+        },
+        {
+          "name": "Reflection Journal Prompts",
+          "description": "Generate 5 journaling prompts to help me reflect on my productivity and personal growth this week.",
+          "tags": ["journaling", "self-reflection", "personal growth"]
+        },
+        {
+          "name": "Routine Creation",
+          "description": "Design a productive morning routine that includes [elements, e.g., exercise, meditation, planning] and takes [duration].",
+          "tags": ["routine", "habit building", "well-being"]
+        },
+        {
+          "name": "Information Breakdown",
+          "description": "Break down the information from this [document/article] into easy-to-understand bullet points for quick reference.",
+          "tags": ["information processing", "summarization", "organization"]
+        }
+      ]
+    },
+    "Art & Design": {
+      "name": "Art & Design",
+      "description": "These prompts are primarily for generating visual art or design concepts using image-generating AI.",
+      "prompts": [
+        {
+          "name": "Specific Object/Scene with Style",
+          "description": "Generate an image of a [object/scene, e.g., tranquil lake nestled in a dense forest] in the style of [artistic style, e.g., impressionism/photorealistic], with [specific lighting/mood].",
+          "tags": ["image generation", "art style", "visuals"]
+        },
+        {
+          "name": "Character Concept Art",
+          "description": "Create a character design for a [genre] video game, focusing on their visual appearance, costume, and a hint of their personality.",
+          "tags": ["character design", "concept art", "gaming"]
+        },
+        {
+          "name": "Abstract Art",
+          "description": "Generate an abstract geometric pattern with vibrant colors and fluid lines, evoking a sense of [emotion].",
+          "tags": ["abstract art", "design", "patterns"]
+        },
+        {
+          "name": "Architectural Visualization",
+          "description": "Design a futuristic cityscape at night, featuring towering skyscrapers with glowing neon lights and holographic advertisements.",
+          "tags": ["architecture", "design", "visualization"]
+        },
+        {
+          "name": "Fantasy Landscape",
+          "description": "Create an enchanting fantasy landscape depicting a [type of setting, e.g., mystical forest] with [fantasy elements, e.g., glowing flora, ancient ruins].",
+          "tags": ["fantasy art", "landscape", "world-building"]
+        },
+        {
+          "name": "Product Design Concept",
+          "description": "Visualize a new [product type, e.g., minimalist smartwatch] with [specific materials/features], focusing on sleek lines and user-friendly design.",
+          "tags": ["product design", "concept art", "industrial design"]
+        },
+        {
+          "name": "Portrait with Emotion/Style",
+          "description": "Generate a portrait image showcasing a person with [specific emotion, e.g., serene expression], in a [artistic style, e.g., oil painting], with soft lighting.",
+          "tags": ["portrait", "art style", "emotion"]
+        },
+        {
+          "name": "Reinterpretation of Famous Art",
+          "description": "A painting of [famous landmark/artwork] in [another artist's style, e.g., the Eiffel Tower in Van Gogh's artistic style], focusing on the interplay of light, color, and texture.",
+          "tags": ["art history", "reinterpretation", "painting"]
+        },
+        {
+          "name": "Logo/Emblem Design",
+          "description": "Generate several emblem concepts for a [type of organization, e.g., prestigious university], featuring symbols like a [shield, open book, pen].",
+          "tags": ["logo design", "branding", "graphics"]
+        },
+        {
+          "name": "Icon/UI Element Design",
+          "description": "Create a set of minimalist icons for a [type of app, e.g., weather app], representing [specific functions like sun, clouds, rain].",
+          "tags": ["UI design", "icons", "app design"]
+        }
+      ]
+    },
+    "Science & Research": {
+      "name": "Science & Research",
+      "description": "These prompts assist with scientific inquiry, data analysis, and research tasks.",
+      "prompts": [
+        {
+          "name": "Academic Research Summary",
+          "description": "Analyze the following research paper: [paste paper content]. Extract key findings, methodologies, and conclusions, and suggest related research directions.",
+          "tags": ["research", "academics", "summary"]
+        },
+        {
+          "name": "Hypothesis Generation",
+          "description": "Formulate a testable hypothesis for an experiment investigating the relationship between [variable 1] and [variable 2] in [context].",
+          "tags": ["science", "hypothesis", "experiment"]
+        },
+        {
+          "name": "Experimental Design",
+          "description": "Design a simple experiment to test the effect of [variable] on [outcome], outlining the procedure, controls, and expected results.",
+          "tags": ["science", "experiment", "design"]
+        },
+        {
+          "name": "Scientific Concept Explanation",
+          "description": "Explain the process of [scientific phenomenon, e.g., photosynthesis] to a [target audience, e.g., 7th grader], using analogies if helpful.",
+          "tags": ["science", "explanation", "education"]
+        },
+        {
+          "name": "Data Interpretation",
+          "description": "Interpret the following dataset: [data] and identify any significant trends or outliers related to [specific aspect].",
+          "tags": ["data analysis", "interpretation", "research"]
+        },
+        {
+          "name": "Technical Research",
+          "description": "Provide a brief overview of the current state of research on [topic], including 5 key facts/statistics and 3 different perspectives.",
+          "tags": ["research", "technical", "overview"]
+        },
+        {
+          "name": "Literature Review Outline",
+          "description": "Create an outline for a literature review on [topic], including key themes, sub-sections, and important researchers/theories.",
+          "tags": ["research", "literature review", "outline"]
+        },
+        {
+          "name": "Chemical Reaction/Formula Explanation",
+          "description": "Explain the chemical reaction of [reactants] to form [products], including the balanced equation and real-world applications.",
+          "tags": ["chemistry", "explanation", "science"]
+        },
+        {
+          "name": "Statistical Analysis Guidance",
+          "description": "Describe how to perform a [statistical test, e.g., t-test] on a given dataset, and explain what the results indicate.",
+          "tags": ["statistics", "data analysis", "guidance"]
+        },
+        {
+          "name": "Ethical Considerations in Research",
+          "description": "Discuss the ethical considerations involved in conducting research on [sensitive topic, e.g., human gene editing], including potential benefits and risks.",
+          "tags": ["ethics", "research", "considerations"]
+        }
+      ]
+    },
+    "Health & Wellness": {
+      "name": "Health & Wellness",
+      "description": "These prompts cater to fitness, nutrition, and mental well-being.",
+      "prompts": [
+        {
+          "name": "Workout Plan Creation",
+          "description": "Design a 4-week workout plan for a beginner who wants to improve overall fitness. Duration: 30 minutes per session. Focus: Full-body fitness.",
+          "tags": ["fitness", "workout", "health"]
+        },
+        {
+          "name": "Meal Plan Generation",
+          "description": "Create a 7-day meal plan focusing on high-protein meals for breakfast, lunch, dinner, and snacks, considering [dietary preferences, e.g., vegetarian, allergies].",
+          "tags": ["nutrition", "meal planning", "diet"]
+        },
+        {
+          "name": "Healthy Habit Integration",
+          "description": "Suggest 5 practical ways to incorporate more mindfulness into a busy daily routine.",
+          "tags": ["mindfulness", "habits", "wellness"]
+        },
+        {
+          "name": "Symptom Checker/Information (Disclaimer Needed)",
+          "description": "What are the common causes and home remedies for [symptom, e.g., mild headaches]? (Always advise consulting a medical professional for health concerns).",
+          "tags": ["health information", "symptoms", "wellness"]
+        },
+        {
+          "name": "Stress Management Techniques",
+          "description": "List 5 effective stress management techniques that can be practiced in under 10 minutes.",
+          "tags": ["stress relief", "mental health", "wellness"]
+        },
+        {
+          "name": "Motivation/Goal Setting",
+          "description": "Provide 3 motivational quotes or prompts to help me stay consistent with my fitness goals.",
+          "tags": ["motivation", "goal setting", "fitness"]
+        },
+        {
+          "name": "Recovery Tips",
+          "description": "Suggest recovery tips for sore muscles after an intense [type of exercise] workout.",
+          "tags": ["recovery", "fitness", "muscle soreness"]
+        },
+        {
+          "name": "Mindfulness/Meditation Script",
+          "description": "Write a short guided meditation script focused on [theme, e.g., gratitude/relaxation].",
+          "tags": ["mindfulness", "meditation", "script"]
+        },
+        {
+          "name": "Nutritional Information",
+          "description": "Explain the benefits of incorporating [nutrient, e.g., fiber] into a daily diet and list 5 food sources rich in it.",
+          "tags": ["nutrition", "diet", "food science"]
+        },
+        {
+          "name": "Sleep Improvement Strategies",
+          "description": "What are some effective strategies to improve sleep quality for someone experiencing occasional insomnia?",
+          "tags": ["sleep", "wellness", "insomnia"]
+        }
+      ]
+    },
+    "Entertainment & Gaming": {
+      "name": "Entertainment & Gaming",
+      "description": "These prompts focus on generating ideas for games, stories, and engaging content.",
+      "prompts": [
+        {
+          "name": "Game Idea Generation",
+          "description": "Generate a concept for a [genre, e.g., puzzle-adventure] video game, including a unique premise, core gameplay mechanics, and potential challenges.",
+          "tags": ["gaming", "game design", "brainstorming"]
+        },
+        {
+          "name": "RPG/Character Lore",
+          "description": "Create a detailed backstory for a [race/class, e.g., elven rogue] character in a fantasy RPG, including their motivations and key events.",
+          "tags": ["RPG", "character lore", "fantasy"]
+        },
+        {
+          "name": "Interactive Story/Game (Text-Based)",
+          "description": "Let's play a text-based adventure game. You are the game master, and I am the player. Start with a scenario in a [setting, e.g., mysterious ancient temple].",
+          "tags": ["interactive story", "text adventure", "gaming"]
+        },
+        {
+          "name": "Quiz/Trivia Question Creation",
+          "description": "Create a custom quiz about [topic/personality I'm interested in], with a mix of thought-provoking, humorous, and insightful questions.",
+          "tags": ["quiz", "trivia", "entertainment"]
+        },
+        {
+          "name": "Movie/TV Show Pitch",
+          "description": "Pitch a concept for a [genre] movie/TV show about [premise], including main characters and a brief plot summary.",
+          "tags": ["movie", "TV show", "pitch"]
+        },
+        {
+          "name": "Joke/Riddle Generation",
+          "description": "Craft an amusing and brain-teasing riddle that revolves around [my recent interests/a specific object].",
+          "tags": ["humor", "riddles", "jokes"]
+        },
+        {
+          "name": "Music Playlist/Song Idea",
+          "description": "Suggest 10 songs for a [mood/activity, e.g., relaxing evening/workout] playlist. (Or Generate a concept for a song with [specific theme/genre] lyrics.)",
+          "tags": ["music", "playlist", "songwriting"]
+        },
+        {
+          "name": "Social Media Challenge/Trend",
+          "description": "Design a unique and creative daily challenge that aligns with my interests, ensuring it sparks joy and encourages creativity.",
+          "tags": ["social media", "trends", "challenges"]
+        },
+        {
+          "name": "What If Scenarios (Fiction/Fantasy)",
+          "description": "Imagine if [historical event/mythical creature] existed in [modern setting]. How would society be affected?",
+          "tags": ["what if", "fiction", "fantasy"]
+        },
+        {
+          "name": "Fan Fiction/Alternate Ending",
+          "description": "Write an alternate ending for [popular book/movie/game] where [specific event] happens instead.",
+          "tags": ["fan fiction", "alternate ending", "storytelling"]
+        }
+      ]
+    },
+    "Problem-Solving & Critical Thinking": {
+      "name": "Problem-Solving & Critical Thinking",
+      "description": "These prompts encourage analytical thinking and structured problem-solving.",
+      "prompts": [
+        {
+          "name": "Root Cause Analysis",
+          "description": "Analyze the following problem: [describe problem]. What are the potential root causes, and how can we investigate them further?",
+          "tags": ["problem-solving", "analysis", "root cause"]
+        },
+        {
+          "name": "Pros and Cons List",
+          "description": "Generate a list of pros and cons for [decision/action], considering [specific factors].",
+          "tags": ["decision making", "pros and cons", "analysis"]
+        },
+        {
+          "name": "Scenario Analysis",
+          "description": "Given the scenario: [describe situation], what are 3 possible outcomes and the implications of each?",
+          "tags": ["scenario planning", "analysis", "forecasting"]
+        },
+        {
+          "name": "Solution Brainstorming",
+          "description": "Brainstorm diverse solutions to the challenge of [specific problem], considering [constraints/resources].",
+          "tags": ["problem-solving", "brainstorming", "solutions"]
+        },
+        {
+          "name": "Logical Reasoning Puzzle",
+          "description": "Present a logical reasoning puzzle or a riddle that requires deductive reasoning to solve.",
+          "tags": ["logic", "puzzles", "critical thinking"]
+        },
+        {
+          "name": "Debate Point Formulation",
+          "description": "Formulate strong arguments for and against the implementation of [policy/idea], considering different perspectives.",
+          "tags": ["debate", "argumentation", "critical thinking"]
+        },
+        {
+          "name": "Critical Evaluation of Information",
+          "description": "Critically evaluate the following statement: [statement]. What are its strengths, weaknesses, and any underlying assumptions?",
+          "tags": ["critical thinking", "evaluation", "information analysis"]
+        },
+        {
+          "name": "Forecasting/Prediction",
+          "description": "Based on current trends in [industry/area], what are 3 potential developments or challenges that could arise in the next 5 years?",
+          "tags": ["forecasting", "prediction", "trends"]
+        },
+        {
+          "name": "Ethical Dilemma Resolution",
+          "description": "Describe an ethical dilemma related to [topic] and propose different approaches to resolve it, justifying each approach.",
+          "tags": ["ethics", "dilemma", "problem-solving"]
+        },
+        {
+          "name": "Systematic Problem Breakdown",
+          "description": "Break down the complex problem of [problem] into smaller, manageable components, and suggest a systematic approach to address each one.",
+          "tags": ["problem breakdown", "systematic approach", "planning"]
+        }
+      ]
+    }
+  }

@@ -1,13 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
-from sqlalchemy import update, select
-from app.models import Prompt
+from typing import List, Optional, Dict, Any
+from sqlalchemy import update, select, func
+from sqlalchemy.orm import selectinload
+from app.models import Prompt, Category, Tag
 
 from app import crud, schemas
 from app.database import get_db
 
 router = APIRouter()
+
+@router.get("/stats", response_model=schemas.DashboardStats)
+async def get_dashboard_stats(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get statistics for the dashboard.
+    """
+    # Get total counts
+    total_prompts = (await db.execute(select(func.count(Prompt.id)))).scalar() or 0
+    total_categories = (await db.execute(select(func.count(Category.id)))).scalar() or 0
+    total_tags = (await db.execute(select(func.count(Tag.id)))).scalar() or 0
+    
+    # Get prompts by category
+    categories = (await db.execute(
+        select(Category)
+        .options(selectinload(Category.prompts))
+    )).scalars().all()
+    
+    prompts_by_category = {
+        category.name: len(category.prompts)
+        for category in categories
+    }
+    
+    return {
+        "total_prompts": total_prompts,
+        "total_categories": total_categories,
+        "total_tags": total_tags,
+        "prompts_by_category": prompts_by_category
+    }
 
 @router.get("/", response_model=List[schemas.PromptResponse])
 async def read_prompts(

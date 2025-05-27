@@ -83,3 +83,11 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class DashboardStats(BaseModel):
+    total_prompts: int
+    total_categories: int
+    total_tags: int
+    prompts_by_category: dict[str, int] = {}
+
+    model_config = ConfigDict(from_attributes=True)
