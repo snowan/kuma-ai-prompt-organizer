@@ -1,9 +1,9 @@
 import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spinner, Text, VStack, useToast } from '@chakra-ui/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { deletePrompt, getPrompt } from '../services/promptService';
-import type { Prompt } from '../services/promptService';
+import type { Prompt } from '../types';
 
 const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,6 +60,11 @@ const PromptDetail = () => {
     }
   };
 
+  // If there's an outlet (like the edit form), render it
+  if (window.location.pathname.endsWith('/edit')) {
+    return <Outlet context={{ prompt }} />;
+  }
+
   return (
     <VStack spacing={6} align="stretch">
       <Flex justify="space-between" align="center">
@@ -83,9 +88,9 @@ const PromptDetail = () => {
 
       <Card>
         <CardHeader pb={0}>
-          {prompt.category_id && (
+          {prompt.category && (
             <Text color="gray.500" mb={2}>
-              Category: {prompt.category_id}
+              Category: {prompt.category.name}
             </Text>
           )}
         </CardHeader>

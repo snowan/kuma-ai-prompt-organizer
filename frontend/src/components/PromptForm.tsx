@@ -2,10 +2,10 @@ import { Box, Button, FormControl, FormLabel, Select, Textarea, VStack, FormErro
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import type { SubmitHandler, FieldValues } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { createPrompt, updatePrompt, getCategories } from '../services/promptService';
 import type { Prompt, Category } from '../types';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 interface FormData extends FieldValues {
   title: string;
@@ -20,7 +20,21 @@ interface PromptFormProps {
   isEditing?: boolean;
 }
 
-const PromptForm = ({ prompt, isEditing = false }: PromptFormProps) => {
+const PromptForm = ({ isEditing = false }: PromptFormProps) => {
+  const { prompt: promptData } = useOutletContext<{ prompt: Prompt }>() || {};
+  const { id } = useParams<{ id: string }>();
+  const [initialPrompt, setInitialPrompt] = useState<Partial<Prompt>>({});
+
+  useEffect(() => {
+    if (isEditing && promptData) {
+      setInitialPrompt({
+        title: promptData.title,
+        content: promptData.content,
+        category_id: promptData.category_id,
+        tags: promptData.tags || []
+      });
+    }
+  }, [isEditing, promptData]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
@@ -45,16 +59,30 @@ const PromptForm = ({ prompt, isEditing = false }: PromptFormProps) => {
     handleSubmit, 
     setValue,
     watch,
+    reset,
     formState: { errors } 
-  } = useForm<FormData>({
-    defaultValues: {
-      title: prompt?.title || '',
-      content: prompt?.content || '',
-      category_id: prompt?.category_id || undefined,
-      tag_names: prompt?.tags?.map(tag => tag.name) || [],
-      newTag: '',
-    },
-  });
+  } = useForm<FormData>();
+
+  // Set form values when initialPrompt changes
+  useEffect(() => {
+    if (isEditing && initialPrompt) {
+      reset({
+        title: initialPrompt.title || '',
+        content: initialPrompt.content || '',
+        category_id: initialPrompt.category_id,
+        tag_names: initialPrompt.tags?.map(tag => tag.name) || [],
+        newTag: '',
+      });
+    } else {
+      reset({
+        title: '',
+        content: '',
+        category_id: undefined,
+        tag_names: [],
+        newTag: '',
+      });
+    }
+  }, [initialPrompt, isEditing, reset]);
 
   const tagNames = watch('tag_names') || [];
   const currentCategoryId = watch('category_id');
@@ -79,8 +107,8 @@ const PromptForm = ({ prompt, isEditing = false }: PromptFormProps) => {
         tag_names: data.tag_names || [],
       };
 
-      if (isEditing && prompt?.id) {
-        await updatePrompt(prompt.id, promptData);
+      if (isEditing && id) {
+        await updatePrompt(Number(id), promptData);
         showToast('Prompt updated successfully', 'success');
       } else {
         await createPrompt(promptData);

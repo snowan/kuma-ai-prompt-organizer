@@ -32,8 +32,9 @@ function App() {
               <Route path="prompts">
                 <Route index element={<PromptList />} />
                 <Route path="new" element={<PromptForm />} />
-                <Route path=":id" element={<PromptDetail />} />
-                <Route path=":id/edit" element={<PromptForm isEditing />} />
+                <Route path=":id" element={<PromptDetail />}>
+                  <Route path="edit" element={<PromptForm isEditing />} />
+                </Route>
               </Route>
               
               <Route path="categories">
