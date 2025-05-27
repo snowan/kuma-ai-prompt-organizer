@@ -2,19 +2,31 @@ import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spi
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { deletePrompt, getPrompt } from '../services/promptService';
-import type { Prompt } from '../types';
+import { deletePrompt, getPrompt, getCategories } from '../services/promptService';
+import type { Prompt, Category } from '../types';
+import { useMemo } from 'react';
 
 const PromptDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const { data: prompt, isLoading, error } = useQuery<Prompt>({
+  const { data: prompt, isLoading: isLoadingPrompt, error: promptError } = useQuery<Prompt>({
     queryKey: ['prompt', id],
     queryFn: () => getPrompt(Number(id)),
     enabled: !!id,
   });
+
+  const { data: categories, isLoading: isLoadingCategories } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: () => getCategories(),
+  });
+
+  const categoryName = useMemo(() => {
+    if (!categories || !prompt?.category_id) return null;
+    const category = categories.find(cat => cat.id === prompt.category_id);
+    return category ? category.name : null;
+  }, [categories, prompt?.category_id]);
 
   const queryClient = useQueryClient();
 
@@ -43,7 +55,7 @@ const PromptDetail = () => {
     },
   });
 
-  if (isLoading) {
+  if (isLoadingPrompt || isLoadingCategories) {
     return (
       <Flex justify="center" mt={8}>
         <Spinner size="xl" />
@@ -51,10 +63,10 @@ const PromptDetail = () => {
     );
   }
 
-  if (error || !prompt) {
+  if (promptError || !prompt) {
     return (
       <Box color="red.500" textAlign="center" mt={8}>
-        {error ? error.message : 'Prompt not found'}
+        {promptError ? promptError.message : 'Prompt not found'}
       </Box>
     );
   }
@@ -93,9 +105,9 @@ const PromptDetail = () => {
 
       <Card>
         <CardHeader pb={0}>
-          {prompt.category && (
+          {categoryName && (
             <Text color="gray.500" mb={2}>
-              Category: {prompt.category.name}
+              Category: {categoryName}
             </Text>
           )}
         </CardHeader>
