@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Heading } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, Image, HStack } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 
 const Navbar = () => {
@@ -6,17 +6,27 @@ const Navbar = () => {
     <Box as="header" bg="white" color="gray.800" boxShadow="sm" position="sticky" top={0} zIndex={10}>
       <Box maxW="container.xl" mx="auto" px={4}>
         <Flex h={16} alignItems="center" justifyContent="space-between">
-          <Box>
+          <HStack spacing={4}>
+            <RouterLink to="/">
+              <Image 
+                src="/images/logo.png" 
+                alt="Kuma AI Logo" 
+                h="40px" 
+                w="auto" 
+                objectFit="contain"
+              />
+            </RouterLink>
             <RouterLink to="/" style={{ textDecoration: 'none' }}>
               <Heading
                 size="lg"
                 bgGradient="linear(to-r, blue.400, teal.500)"
                 bgClip="text"
+                fontSize="xl"
               >
-                Kuma AI Prompt Manager
+                AI Prompt Manager
               </Heading>
             </RouterLink>
-          </Box>
+          </HStack>
 
           <Flex gap={4}>
             <Button as={RouterLink} to="/prompts" variant="ghost">
