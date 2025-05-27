@@ -75,6 +75,12 @@ const PromptForm = ({ isEditing = false }: PromptFormProps) => {
     setIsAIAssistantOpen(false);
   };
 
+  const handleApplyTags = (tags: string[]) => {
+    const currentTags = watch('tag_names') || [];
+    const newTags = [...new Set([...currentTags, ...tags])]; // Remove duplicates
+    setValue('tag_names', newTags);
+  };
+
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
@@ -196,6 +202,7 @@ const PromptForm = ({ isEditing = false }: PromptFormProps) => {
                 onClose={() => setIsAIAssistantOpen(false)}
                 initialPrompt={watch('content')}
                 onApplySuggestion={handleAISuggestion}
+                onApplyTags={handleApplyTags}
               />
             )}
           </FormControl>

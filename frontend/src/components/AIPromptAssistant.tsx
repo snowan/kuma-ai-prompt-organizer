@@ -25,6 +25,7 @@ interface AIPromptAssistantProps {
   onClose: () => void;
   initialPrompt?: string;
   onApplySuggestion: (suggestion: string) => void;
+  onApplyTags?: (tags: string[]) => void;
 }
 
 export const AIPromptAssistant = ({
@@ -32,6 +33,7 @@ export const AIPromptAssistant = ({
   onClose,
   initialPrompt = '',
   onApplySuggestion,
+  onApplyTags,
 }: AIPromptAssistantProps) => {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +79,12 @@ export const AIPromptAssistant = ({
   const handleApplySuggestion = () => {
     if (suggestions?.improvedPrompt) {
       onApplySuggestion(suggestions.improvedPrompt);
+      
+      // If there are suggested tags and onApplyTags is provided, apply them
+      if (suggestions.tags?.length > 0 && onApplyTags) {
+        onApplyTags(suggestions.tags);
+      }
+      
       onClose();
     }
   };
