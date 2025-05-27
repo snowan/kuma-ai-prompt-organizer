@@ -1,5 +1,5 @@
 import { Box, Button, Card, CardBody, CardHeader, Flex, Heading, IconButton, Spinner, Text, VStack, useToast } from '@chakra-ui/react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import { deletePrompt, getPrompt } from '../services/promptService';
@@ -16,9 +16,14 @@ const PromptDetail = () => {
     enabled: !!id,
   });
 
+  const queryClient = useQueryClient();
+
   const deleteMutation = useMutation({
     mutationFn: () => deletePrompt(Number(id)),
     onSuccess: () => {
+      // Invalidate the prompts query to refetch the updated list
+      queryClient.invalidateQueries({ queryKey: ['prompts'] });
+      
       toast({
         title: 'Prompt deleted',
         status: 'success',
