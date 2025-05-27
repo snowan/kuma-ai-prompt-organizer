@@ -8,9 +8,10 @@ import { useMemo } from 'react';
 const PromptList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
+  const tagName = searchParams.get('tag') || undefined;
   const { data: prompts, isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
-    queryKey: ['prompts', { category_id: categoryId }],
-    queryFn: () => getPrompts({ category_id: categoryId }),
+    queryKey: ['prompts', { category_id: categoryId, tag: tagName }],
+    queryFn: () => getPrompts({ category_id: categoryId, tag: tagName }),
   });
 
   const { data: categories, isLoading: isLoadingCategories } = useQuery({
@@ -47,7 +48,7 @@ const PromptList = () => {
         <Box>
           <Heading size="lg" display="inline" mr={4}>All Prompts</Heading>
           {categoryId && categoryMap[categoryId] && (
-            <Badge colorScheme="blue" fontSize="md" px={2} py={1} borderRadius="md">
+            <Badge colorScheme="blue" fontSize="md" px={2} py={1} borderRadius="md" mr={2}>
               Category: {categoryMap[categoryId]}
               <Button 
                 size="xs" 
@@ -55,6 +56,22 @@ const PromptList = () => {
                 ml={2} 
                 onClick={() => {
                   searchParams.delete('category_id');
+                  setSearchParams(searchParams);
+                }}
+              >
+                ✕
+              </Button>
+            </Badge>
+          )}
+          {tagName && (
+            <Badge colorScheme="teal" fontSize="md" px={2} py={1} borderRadius="md" display="inline-flex" alignItems="center">
+              Tag: {tagName}
+              <Button 
+                size="xs" 
+                variant="ghost" 
+                ml={2} 
+                onClick={() => {
+                  searchParams.delete('tag');
                   setSearchParams(searchParams);
                 }}
               >
@@ -107,7 +124,25 @@ const PromptList = () => {
                 {prompt.tags && prompt.tags.length > 0 && (
                   <Flex mt={3} gap={2} flexWrap="wrap">
                     {prompt.tags.map((tag) => (
-                      <Box key={tag.id} px={2} py={1} bg="teal.100" borderRadius="full" fontSize="xs">
+                      <Box 
+                        key={tag.id} 
+                        as="button"
+                        px={2} 
+                        py={1} 
+                        bg="teal.100" 
+                        borderRadius="full" 
+                        fontSize="xs"
+                        _hover={{ bg: 'teal.200' }}
+                        transition="background-color 0.2s"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          searchParams.set('tag', tag.name);
+                          // Remove category filter when filtering by tag
+                          searchParams.delete('category_id');
+                          setSearchParams(searchParams);
+                        }}
+                      >
                         {tag.name}
                       </Box>
                     ))}
