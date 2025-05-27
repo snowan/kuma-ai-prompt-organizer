@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(
-    title="AI Prompt Manager API",
+    title="Kuma AI Prompt Manager API",
     description="API for managing AI prompts with categories and tags",
     version="0.1.0",
     docs_url="/api/docs",

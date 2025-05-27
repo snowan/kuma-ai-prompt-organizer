@@ -15,7 +15,7 @@ const MainLayout = () => {
       </Box>
       <Box as="footer" py={4} bg="gray.100" w="full">
         <Container maxW="container.xl" textAlign="center">
-          © {new Date().getFullYear()} AI Prompt Manager
+          © {new Date().getFullYear()} Kuma AI Prompt Manager
         </Container>
       </Box>
     </VStack>

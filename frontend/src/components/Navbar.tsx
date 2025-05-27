@@ -13,7 +13,7 @@ const Navbar = () => {
                 bgGradient="linear(to-r, blue.400, teal.500)"
                 bgClip="text"
               >
-                AI Prompt Manager
+                Kuma AI Prompt Manager
               </Heading>
             </RouterLink>
           </Box>
