@@ -30,6 +30,7 @@ class Prompt(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), onupdate=func.now(), nullable=True
     )
+    likes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relationships
     category: Mapped[Optional["Category"]] = relationship(
