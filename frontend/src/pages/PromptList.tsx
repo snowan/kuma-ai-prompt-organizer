@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link as RouterLink, useSearchParams, useNavigate } from 'react-router-dom';
 import { getPrompts, getCategories, likePrompt, getDashboardStats, type DashboardStats } from '../services/promptService';
 import type { Prompt, Category } from '../types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 const PromptList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,22 +12,62 @@ const PromptList = () => {
   const tagName = searchParams.get('tag') || undefined;
   const likedParam = searchParams.get('liked') || '';
   
-  // Initialize liked prompts from URL or create a new Set
-  const [likedPrompts, setLikedPrompts] = useState<Set<number>>(
-    () => new Set(likedParam ? likedParam.split(',').map(Number) : [])
-  );
+  // Initialize liked prompts from localStorage, URL, or create a new Set
+  const [likedPrompts, setLikedPrompts] = useState<Set<number>>(() => {
+    // First try to get from localStorage
+    if (typeof window !== 'undefined') {
+      const savedLikes = localStorage.getItem('likedPrompts');
+      if (savedLikes) {
+        try {
+          const parsed = JSON.parse(savedLikes);
+          if (Array.isArray(parsed)) {
+            return new Set(parsed);
+          }
+        } catch (e) {
+          console.error('Failed to parse liked prompts from localStorage', e);
+        }
+      }
+    }
+    // Fall back to URL params if no localStorage data
+    return new Set(likedParam ? likedParam.split(',').map(Number).filter(Boolean) : []);
+  });
   
-  // Update URL when likedPrompts changes
-  const updateLikedInUrl = (newLiked: Set<number>) => {
+  // Update both localStorage and URL when likedPrompts changes
+  const updateLikedState = (newLiked: Set<number>) => {
+    // Update URL
     const params = new URLSearchParams(searchParams);
-    const likedString = Array.from(newLiked).join(',');
+    const likedString = Array.from(newLiked).filter(id => id).join(',');
     if (likedString) {
       params.set('liked', likedString);
     } else {
       params.delete('liked');
     }
     setSearchParams(params, { replace: true });
+    
+    // Update localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('likedPrompts', JSON.stringify(Array.from(newLiked)));
+      } catch (e) {
+        console.error('Failed to save liked prompts to localStorage', e);
+      }
+    }
   };
+  
+  // Update likedPrompts when URL changes (e.g., when navigating back/forward)
+  useEffect(() => {
+    const newLiked = new Set(likedParam ? likedParam.split(',').map(Number).filter(Boolean) : []);
+    setLikedPrompts(newLiked);
+    
+    // Also update localStorage to keep them in sync
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('likedPrompts', JSON.stringify(Array.from(newLiked)));
+      } catch (e) {
+        console.error('Failed to update liked prompts in localStorage', e);
+      }
+    }
+  }, [likedParam]);
   const queryClient = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
@@ -100,20 +140,71 @@ const PromptList = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Don't do anything if a like is already in progress
+    if (likeMutation.isPending) return;
+    
     // Toggle like state locally for immediate UI feedback
-    const newLikedPrompts = new Set(likedPrompts);
-    const isLiked = newLikedPrompts.has(prompt.id);
+    const newLiked = new Set(likedPrompts);
+    const isLiked = newLiked.has(prompt.id);
     
     if (isLiked) {
-      newLikedPrompts.delete(prompt.id);
+      newLiked.delete(prompt.id);
     } else {
-      newLikedPrompts.add(prompt.id);
+      newLiked.add(prompt.id);
     }
-    setLikedPrompts(newLikedPrompts);
-    updateLikedInUrl(newLikedPrompts);
     
-    // Call the mutation to update the server
-    likeMutation.mutate(prompt.id);
+    setLikedPrompts(newLiked);
+    updateLikedState(newLiked);
+    
+    // Only call the API if we're adding a like (not removing)
+    if (!isLiked) {
+      likeMutation.mutate(prompt.id, {
+        onError: (error: any) => {
+          // If the error is an authentication error, show a login prompt
+          if (error.name === 'AuthError' || error.response?.status === 401) {
+            // First show the toast
+            const toastId = toast({
+              title: 'Login Required',
+              description: 'You need to be logged in to like prompts',
+              status: 'warning',
+              duration: 5000,
+              isClosable: true,
+              position: 'top-right'
+            });
+            
+            // Then show a separate toast with the login button
+            toast({
+              render: () => (
+                <Box p={3} bg="white" borderRadius="md" boxShadow="md">
+                  <Text mb={2}>Would you like to log in now?</Text>
+                  <Button 
+                    colorScheme="blue" 
+                    size="sm" 
+                    onClick={() => {
+                      toast.closeAll();
+                      navigate('/login', { state: { from: window.location.pathname } });
+                    }}
+                  >
+                    Log In
+                  </Button>
+                </Box>
+              ),
+              status: 'info',
+              duration: 5000,
+              isClosable: true,
+              position: 'top-right'
+            });
+            
+            // Revert the optimistic update
+            setLikedPrompts(prev => {
+              const reverted = new Set(prev);
+              reverted.delete(prompt.id);
+              return reverted;
+            });
+          }
+        }
+      });
+    }
   };
 
   // Filter prompts by category if categoryId is provided

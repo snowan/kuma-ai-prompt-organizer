@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, Dict, Any
-from sqlalchemy import update, select, func
+from typing import List, Optional, Dict, Any, Set
+from sqlalchemy import update, select, func, and_
 from sqlalchemy.orm import selectinload
-from app.models import Prompt, Category, Tag
 
-from app import crud, schemas
+from app import crud, schemas, models
 from app.database import get_db
+from app.core import get_user_id_from_request, security
+from app.models import Prompt, Category, Tag, PromptLike
+
+# For endpoints that require authentication, we can use:
+# current_user_id: str = Depends(security.get_current_user_id)
 
 router = APIRouter()
 
@@ -42,6 +46,7 @@ async def get_dashboard_stats(
 
 @router.get("/", response_model=List[schemas.PromptResponse])
 async def read_prompts(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
@@ -51,29 +56,54 @@ async def read_prompts(
 ):
     """
     Retrieve prompts with optional filtering and search.
+    Includes like status for the current user if authenticated.
     """
-    # Get prompts with base filters
-    prompts = await crud.get_prompts(db, skip=skip, limit=limit, search=search)
-    
-    # Apply additional filters
-    if category_id is not None:
-        prompts = [p for p in prompts if p.category_id == category_id]
-    
-    if tag is not None:
-        tag_lower = tag.lower()
-        prompts = [p for p in prompts if any(t.name.lower() == tag_lower for t in p.tags)]
-    
-    return prompts
+    try:
+        # Get current user ID from the request (if authenticated)
+        current_user_id = get_user_id_from_request(request)
+        
+        # Get prompts with base filters and like status
+        prompts = await crud.get_prompts(
+            db, 
+            skip=skip, 
+            limit=limit, 
+            search=search,
+            user_id=current_user_id
+        )
+        
+        # Apply additional filters
+        if category_id is not None:
+            prompts = [p for p in prompts if p.get('category_id') == category_id]
+        
+        if tag is not None:
+            tag_lower = tag.lower()
+            prompts = [p for p in prompts if any(
+                t.get('name', '').lower() == tag_lower 
+                for t in (p.get('tags') or [])
+            )]
+        
+        return prompts
+        
+    except Exception as e:
+        print(f"Error in read_prompts: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving prompts: {str(e)}"
+        )
 
 @router.post("/", response_model=schemas.PromptResponse, status_code=201)
 async def create_prompt(
     prompt: schemas.PromptCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Create a new prompt with optional category and tags.
     """
     try:
+        # Get current user ID from the request (if authenticated)
+        current_user_id = get_user_id_from_request(request)
+        
         # Check if category exists if provided
         if prompt.category_id is not None:
             db_category = await crud.get_category(db, category_id=prompt.category_id)
@@ -81,8 +111,7 @@ async def create_prompt(
                 raise HTTPException(status_code=400, detail="Category not found")
         
         # Create prompt (handles duplicate checking)
-        # TODO: Get user_id from authentication context
-        result = await crud.create_prompt(db=db, prompt=prompt, user_id=1)
+        result = await crud.create_prompt(db=db, prompt=prompt, user_id=current_user_id)
         
         # Handle case where a similar prompt was found
         if isinstance(result, dict) and 'similar_prompt_id' in result:
@@ -108,24 +137,68 @@ async def create_prompt(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{prompt_id}", response_model=schemas.PromptResponse)
-async def read_prompt(prompt_id: int, db: AsyncSession = Depends(get_db)):
+async def read_prompt(
+    prompt_id: int, 
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Get a specific prompt by ID.
+    Includes like status for the current user if authenticated.
     """
-    db_prompt = await crud.get_prompt(db, prompt_id=prompt_id)
-    if db_prompt is None:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    return db_prompt
+    try:
+        # Get current user ID from the request (if authenticated)
+        current_user_id = get_user_id_from_request(request)
+        
+        # Get prompt with like status for the current user
+        db_prompt = await crud.get_prompt(
+            db, 
+            prompt_id=prompt_id,
+            user_id=current_user_id
+        )
+        
+        if db_prompt is None:
+            raise HTTPException(status_code=404, detail="Prompt not found")
+        
+        # Ensure the response matches the schema
+        response = {
+            "id": db_prompt["id"],
+            "title": db_prompt["title"],
+            "content": db_prompt["content"],
+            "category_id": db_prompt["category_id"],
+            "created_at": db_prompt["created_at"],
+            "updated_at": db_prompt["updated_at"],
+            "like_count": db_prompt["like_count"],
+            "user_id": db_prompt["user_id"],
+            "category": db_prompt["category"],
+            "tags": db_prompt["tags"],
+            "is_liked": db_prompt.get("is_liked", False)
+        }
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in read_prompt endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving the prompt"
+        )
 
 @router.put("/{prompt_id}", response_model=schemas.PromptResponse)
 async def update_prompt(
     prompt_id: int,
     prompt: schemas.PromptUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Update a prompt.
     """
+    # Get current user ID from the request (if authenticated)
+    current_user_id = get_user_id_from_request(request)
+    
     # Check if prompt exists
     db_prompt = await crud.get_prompt(db, prompt_id=prompt_id)
     if db_prompt is None:
@@ -138,7 +211,7 @@ async def update_prompt(
             raise HTTPException(status_code=400, detail="Category not found")
     
     # Update prompt (handles duplicate checking)
-    result = await crud.update_prompt(db=db, prompt_id=prompt_id, prompt=prompt)
+    result = await crud.update_prompt(db=db, prompt_id=prompt_id, prompt=prompt, user_id=current_user_id)
     
     # Check if result is a duplicate warning
     if isinstance(result, dict) and "similar_prompt_id" in result:
@@ -155,43 +228,104 @@ async def update_prompt(
 
 @router.delete("/{prompt_id}", response_model=schemas.PromptResponse)
 async def delete_prompt(
-    prompt_id: int, db: AsyncSession = Depends(get_db)
+    prompt_id: int, 
+    request: Request,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Delete a prompt.
     """
+    # Get current user ID from the request (if authenticated)
+    current_user_id = get_user_id_from_request(request)
+    
     prompt = await crud.get_prompt(db, prompt_id=prompt_id)
     if prompt is None:
         raise HTTPException(status_code=404, detail="Prompt not found")
-    return await crud.delete_prompt(db=db, prompt_id=prompt_id)
+    return await crud.delete_prompt(db=db, prompt_id=prompt_id, user_id=current_user_id)
 
 @router.post("/{prompt_id}/like", response_model=schemas.PromptResponse)
 async def like_prompt(
     prompt_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Increment the like count for a prompt.
+    Like or unlike a prompt for the current user.
+    Returns the updated prompt with the new like count and like status.
     """
+    # Get current user ID from the request (if authenticated)
+    current_user_id = get_user_id_from_request(request)
+    
+    if not current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
+    
+    try:
+        # Toggle like status and get updated prompt
+        updated_prompt = await crud.like_prompt(db, prompt_id, current_user_id)
+        
+        # Ensure the response includes all necessary data
+        return await crud.get_prompt(
+            db, 
+            prompt_id=prompt_id,
+            user_id=current_user_id
+        )
+        
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while updating the like status"
+        )
+
+@router.get("/{prompt_id}/likes", response_model=schemas.LikeResponse)
+async def get_prompt_likes(
+    prompt_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get the like count and like status for a prompt.
+    """
+    # Get current user ID from the request (if authenticated)
+    current_user_id = get_user_id_from_request(request)
+    
     # Check if prompt exists
-    result = await db.execute(select(Prompt).filter(Prompt.id == prompt_id))
-    prompt = result.scalars().first()
+    prompt = await crud.get_prompt(db, prompt_id=prompt_id, user_id=current_user_id)
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
-    # Increment the like count
-    stmt = (
-        update(Prompt)
-        .where(Prompt.id == prompt_id)
-        .values(likes=Prompt.likes + 1)
-        .returning(Prompt)
-    )
+    return {
+        "count": prompt.like_count,
+        "is_liked": prompt.is_liked if hasattr(prompt, 'is_liked') else False
+    }
+
+@router.get("/user/likes", response_model=List[int])
+async def get_user_liked_prompts(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all prompt IDs that the current user has liked.
+    """
+    # Get current user ID from the request (if authenticated)
+    current_user_id = get_user_id_from_request(request)
     
-    result = await db.execute(stmt)
-    updated_prompt = result.scalars().first()
-    await db.commit()
+    if not current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required"
+        )
     
-    # Refresh to get updated relationships
-    await db.refresh(updated_prompt, ['category', 'tags'])
-    
-    return updated_prompt
+    try:
+        liked_prompt_ids = await crud.get_user_liked_prompt_ids(db, current_user_id)
+        return list(liked_prompt_ids)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while fetching liked prompts"
+        )
