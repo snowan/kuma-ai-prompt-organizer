@@ -58,30 +58,38 @@ async def read_prompts(
     Retrieve prompts with optional filtering and search.
     Includes like status for the current user if authenticated.
     """
-    # Get current user ID from the request (if authenticated)
-    current_user_id = get_user_id_from_request(request)
-    
-    # Get prompts with base filters and like status
-    prompts = await crud.get_prompts(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        search=search,
-        user_id=current_user_id
-    )
-    
-    # Apply additional filters
-    if category_id is not None:
-        prompts = [p for p in prompts if p.category_id == category_id]
-    
-    if tag is not None:
-        tag_lower = tag.lower()
-        prompts = [p for p in prompts if any(
-            t.name.lower() == tag_lower 
-            for t in (p.tags or [])
-        )]
-    
-    return prompts
+    try:
+        # Get current user ID from the request (if authenticated)
+        current_user_id = get_user_id_from_request(request)
+        
+        # Get prompts with base filters and like status
+        prompts = await crud.get_prompts(
+            db, 
+            skip=skip, 
+            limit=limit, 
+            search=search,
+            user_id=current_user_id
+        )
+        
+        # Apply additional filters
+        if category_id is not None:
+            prompts = [p for p in prompts if p.get('category_id') == category_id]
+        
+        if tag is not None:
+            tag_lower = tag.lower()
+            prompts = [p for p in prompts if any(
+                t.get('name', '').lower() == tag_lower 
+                for t in (p.get('tags') or [])
+            )]
+        
+        return prompts
+        
+    except Exception as e:
+        print(f"Error in read_prompts: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving prompts: {str(e)}"
+        )
 
 @router.post("/", response_model=schemas.PromptResponse, status_code=201)
 async def create_prompt(
@@ -138,20 +146,45 @@ async def read_prompt(
     Get a specific prompt by ID.
     Includes like status for the current user if authenticated.
     """
-    # Get current user ID from the request (if authenticated)
-    current_user_id = get_user_id_from_request(request)
-    
-    # Get prompt with like status for the current user
-    db_prompt = await crud.get_prompt(
-        db, 
-        prompt_id=prompt_id,
-        user_id=current_user_id
-    )
-    
-    if db_prompt is None:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    
-    return db_prompt
+    try:
+        # Get current user ID from the request (if authenticated)
+        current_user_id = get_user_id_from_request(request)
+        
+        # Get prompt with like status for the current user
+        db_prompt = await crud.get_prompt(
+            db, 
+            prompt_id=prompt_id,
+            user_id=current_user_id
+        )
+        
+        if db_prompt is None:
+            raise HTTPException(status_code=404, detail="Prompt not found")
+        
+        # Ensure the response matches the schema
+        response = {
+            "id": db_prompt["id"],
+            "title": db_prompt["title"],
+            "content": db_prompt["content"],
+            "category_id": db_prompt["category_id"],
+            "created_at": db_prompt["created_at"],
+            "updated_at": db_prompt["updated_at"],
+            "like_count": db_prompt["like_count"],
+            "user_id": db_prompt["user_id"],
+            "category": db_prompt["category"],
+            "tags": db_prompt["tags"],
+            "is_liked": db_prompt.get("is_liked", False)
+        }
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in read_prompt endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving the prompt"
+        )
 
 @router.put("/{prompt_id}", response_model=schemas.PromptResponse)
 async def update_prompt(

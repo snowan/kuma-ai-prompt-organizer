@@ -70,12 +70,14 @@ class PromptResponse(BaseModel):
     tags: List[TagResponse] = Field(default_factory=list)
     tag_names: List[str] = Field(default_factory=list)
     like_count: int = 0
-    is_liked: bool = False  # Whether the current user has liked this prompt
+    is_liked: bool = False
+    user_id: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode='after')
     def set_tag_names(self) -> 'PromptResponse':
+        # Ensure tag_names is always in sync with tags
         if self.tags and not self.tag_names:
             self.tag_names = [tag.name for tag in self.tags]
         return self

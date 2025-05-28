@@ -68,8 +68,13 @@ export const likePrompt = async (id: number): Promise<Prompt> => {
     const response = await api.post<Prompt>(`/prompts/${id}/like`);
     console.log('Like response:', response);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in likePrompt:', error);
+    if (error.response?.status === 401) {
+      const error = new Error('Authentication required to like a prompt');
+      error.name = 'AuthError';
+      throw error;
+    }
     throw error;
   }
 };

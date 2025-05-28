@@ -158,8 +158,53 @@ const PromptList = () => {
     
     // Only call the API if we're adding a like (not removing)
     if (!isLiked) {
-      likeMutation.mutate(prompt.id);
-    };
+      likeMutation.mutate(prompt.id, {
+        onError: (error: any) => {
+          // If the error is an authentication error, show a login prompt
+          if (error.name === 'AuthError' || error.response?.status === 401) {
+            // First show the toast
+            const toastId = toast({
+              title: 'Login Required',
+              description: 'You need to be logged in to like prompts',
+              status: 'warning',
+              duration: 5000,
+              isClosable: true,
+              position: 'top-right'
+            });
+            
+            // Then show a separate toast with the login button
+            toast({
+              render: () => (
+                <Box p={3} bg="white" borderRadius="md" boxShadow="md">
+                  <Text mb={2}>Would you like to log in now?</Text>
+                  <Button 
+                    colorScheme="blue" 
+                    size="sm" 
+                    onClick={() => {
+                      toast.closeAll();
+                      navigate('/login', { state: { from: window.location.pathname } });
+                    }}
+                  >
+                    Log In
+                  </Button>
+                </Box>
+              ),
+              status: 'info',
+              duration: 5000,
+              isClosable: true,
+              position: 'top-right'
+            });
+            
+            // Revert the optimistic update
+            setLikedPrompts(prev => {
+              const reverted = new Set(prev);
+              reverted.delete(prompt.id);
+              return reverted;
+            });
+          }
+        }
+      });
+    }
   };
 
   // Filter prompts by category if categoryId is provided
