@@ -10,6 +10,7 @@ const PromptList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : undefined;
   const tagName = searchParams.get('tag') || undefined;
+  const searchQuery = searchParams.get('search') || undefined;
   const likedParam = searchParams.get('liked') || '';
   
   // Initialize liked prompts from localStorage, URL, or create a new Set
@@ -74,8 +75,12 @@ const PromptList = () => {
   
   // Fetch prompts
   const { data: prompts = [], isLoading: isLoadingPrompts, error: promptsError } = useQuery<Prompt[]>({
-    queryKey: ['prompts', { category_id: categoryId, tag: tagName }],
-    queryFn: () => getPrompts({ category_id: categoryId, tag: tagName }),
+    queryKey: ['prompts', { category_id: categoryId, tag: tagName, search: searchQuery }],
+    queryFn: () => getPrompts({ 
+      category_id: categoryId, 
+      tag: tagName, 
+      search: searchQuery 
+    }),
   });
 
   // Fetch dashboard stats
